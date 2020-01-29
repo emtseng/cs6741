@@ -1,0 +1,73 @@
+import torchtext
+import argparse
+from datetime import datetime
+
+from naivebayes import NaiveBayes
+
+# Build the vocabulary with word embeddings
+# url = 'https://dl.fbaipublicfiles.com/fasttext/vectors-wiki/wiki.simple.vec'
+# TEXT.vocab.load_vectors(vectors=Vectors('wiki.simple.vec', url=url))
+
+def test_code(model):
+    "All models should be able to be run with following command."
+    upload = []
+    # Update: for kaggle the bucket iterator needs to have batch_size 10
+    test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
+    for batch in test_iter:
+        # Your prediction data here (don't cheat!)
+        probs = model(batch.text)
+        # here we assume that the name for dimension classes is `classes`
+        _, argmax = probs.max('classes')
+        upload += argmax.tolist()
+
+    with open("predictions.txt", "w") as f:
+        f.write("Id,Category\n")
+        for i, u in enumerate(upload):
+            f.write(str(i) + "," + str(u) + "\n")
+
+def test_code_NB(model):
+    "All models should be able to be run with following command."
+    upload = []
+    # Update: for kaggle the bucket iterator needs to have batch_size 10
+    test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
+    for batch in test_iter:
+        # Your prediction data here (don't cheat!)
+        probs = model.test(batch.text)
+        # here we assume that the name for dimension classes is `classes`
+        _, argmax = probs.max('classes')
+        upload += argmax.tolist()
+
+    with open("predictions_NB_{}.txt".format(datetime.now()), "w") as f:
+        f.write("Id,Category\n")
+        for i, u in enumerate(upload):
+            f.write(str(i) + "," + str(u) + "\n")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-m', type=str, help="which model to run",
+                        required=True, choices=["NaiveBayes"])
+
+    args = parser.parse_args()
+
+    print("Running test for model: {}".format(args.m))
+
+    # Our input $x$
+    TEXT = torchtext.data.Field()
+
+    # Our labels $y$
+    LABEL = torchtext.data.Field(sequential=False, unk_token=None)
+
+    # Generate train/test splits from the SST dataset, filter out neutral examples
+    train, val, test = torchtext.datasets.SST.splits(
+        TEXT, LABEL,
+        filter_pred=lambda ex: ex.label != 'neutral')
+
+    TEXT.build_vocab(train)
+    LABEL.build_vocab(train)
+
+    if args.m == "NaiveBayes":
+        epochs = 1
+        alpha = 1
+        model = NaiveBayes(alpha)
+        model.train(train, val, epochs)
+        test_code_NB(model)
