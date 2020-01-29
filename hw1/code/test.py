@@ -25,11 +25,11 @@ def test_code(model):
         for i, u in enumerate(upload):
             f.write(str(i) + "," + str(u) + "\n")
 
-def test_code_NB(model):
+def test_code_NB(model, test_iter):
     "All models should be able to be run with following command."
     upload = []
     # Update: for kaggle the bucket iterator needs to have batch_size 10
-    test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
+    # test_iter = torchtext.data.BucketIterator(test, train=False, batch_size=10)
     for batch in test_iter:
         # Your prediction data here (don't cheat!)
         probs = model.test(batch.text)
@@ -65,9 +65,11 @@ if __name__ == "__main__":
     TEXT.build_vocab(train)
     LABEL.build_vocab(train)
 
+    train_iter, val_iter, test_iter = torchtext.data.BucketIterator.splits((train, val, test), batch_size=10, device=-1, repeat = False)
+
     if args.m == "NaiveBayes":
         epochs = 1
         alpha = 1
         model = NaiveBayes(alpha)
-        model.train(train, val, epochs)
-        test_code_NB(model)
+        model.train(train_iter, val_iter, epochs)
+        test_code_NB(model, test_iter)
