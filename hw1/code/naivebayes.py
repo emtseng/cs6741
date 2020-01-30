@@ -28,26 +28,81 @@ from tqdm import tqdm
 import torch
 import numpy as np
 
+
 class NaiveBayes:
-    def __init__(self, alpha):
+    def __init__(self, alpha, TEXT, LABEL):
         """
             Initializes with a given smoothing parameter
         """
         self.alpha = alpha
+        self.vocab = TEXT.vocab
+        self.labels = LABEL.vocab
+        # Initialize with zero seen pos or neg samples
+        self.p = self.alpha + np.zeros((self.vocab,))
+        self.q = self.alpha + np.zeros((self.vocab,))
+        self.update()
+    
+    def update(self):
+        self.r = np.log((self.p/self.p.sum()) / (self.q/self.q.sum()))
+        self.b = np.log(len(self.p) / len(self.q))
 
-
-    def train(self, train_iter, val_iter, epochs):
+    def featurize(self, x):
         """
-            Trains the model based on the provided train and val sets.
+            Input: <vec> x
+            Output: <vec> fx, featurized using the vocabulary
         """
-        for epoch in tqdm(epochs):
+        output = np.zeros((self.vocab,))
+        for word_idx in x:
+            output[word_idx] = 1
+        return output
 
-
-
-    def test(self, batch):
+    def train(self, train_iter, val_iter):
         """
-            Produces a distribution of probabilities for each sample in the provided batch.
-            Note the output should have an attribute 'classes' to work with the provided scoring function.
+            "Trains" the model based on the provided train and val sets.
         """
+        for batch_idx, train_batch in enumerate(train_iter):
+            # Update the count vectors...
+            for i in range(len(train_batch)):
+                x = train_batch.text[:, i]
+                fx = self.featurize(x)
+                y = train_batch.label[i]
+                if self.labels.itos[y.item()] == 'positive':
+                  self.p += fx
+                else:
+                  self.q += fx
+            # And recalculate r & b
+            self.update()
+            # Let's hope to see improvement at each batch
+            batch_acc = self.evaluate(val_iter)
+            print('Batch {} acc: {}'.format(batch_idx, batch_acc))
 
+    def evaluate(self, val_iter):
+        """
+            Evaluates against a batch of given data.
+        """
+        correct = 0
+        total = 0
+        for val_batch in val_iter:
+            for i in range(len(val_batch)):
+                x = val_batch.text[:, i]
+                y = val_batch.label[i]
+                fx = self.featurize(x)
+                yhat = self.predict(fx)
+                if y == yhat:
+                    correct += 1
+                total += 1
+        return float(correct / total)
 
+    def predict(self, x):
+        val = np.matmul(self.r.T, x) + self.b
+        if val > 0:
+            return 1
+        else:
+            return -1
+
+    # def test(self, test_batch):
+    #     """
+    #         Produces a distribution of probabilities for each sample in the provided batch.
+    #         Note the output should have an attribute 'classes' to work with the provided scoring function.
+    #     """
+    #     for batch_idx, test_batch

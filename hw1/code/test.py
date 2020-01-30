@@ -70,6 +70,10 @@ if __name__ == "__main__":
     if args.m == "NaiveBayes":
         epochs = 1
         alpha = 1
-        model = NaiveBayes(alpha)
-        model.train(train_iter, val_iter, epochs)
-        test_code_NB(model, test_iter)
+        model = NaiveBayes(alpha, TEXT, LABEL)
+        model.train(train_iter, val_iter)
+        # Evaluate on training set
+        train_acc = model.evaluate(self, train_iter)
+        print('train_acc: ', train_acc)
+        # Evaluate on testing set
+        # test_code_NB(model, test_iter)
