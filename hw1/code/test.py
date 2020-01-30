@@ -73,7 +73,9 @@ if __name__ == "__main__":
         model = NaiveBayes(alpha, TEXT, LABEL)
         model.train(train_iter, val_iter)
         # Evaluate on training set
-        train_acc = model.evaluate(self, train_iter)
-        print('train_acc: ', train_acc)
+        train_acc = model.evaluate(train_iter)
+        print('final train_acc (should be very high): ', train_acc)
         # Evaluate on testing set
         # test_code_NB(model, test_iter)
+        test_acc = model.evaluate(test_iter)
+        print('final test_acc: ', test_acc)

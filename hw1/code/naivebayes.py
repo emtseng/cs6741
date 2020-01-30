@@ -2,16 +2,14 @@
 NaiveBayes
 Author: Emily Tseng (et397)
 
-This implementation works with the accompanying test.py.
-
 --
 
 This implements Multinomial Naive Bayes per Wang & Manning 2012 (https://www.aclweb.org/anthology/P12-2018.pdf), section 2.1.
     y = wx + b
     w = r = log( (p/l1_norm(p)) / (q/l1_norm(q)) )
-    alpha = smoothing parameter
     p = alpha + sum of all positive training cases
     q = alpha + sum of all negative training cases
+    alpha = smoothing parameter (e.g. 1.0)
     b = log(N+/N−), where:
         N+ = the number of positive cases in the training data
         N- = the number of negative cases in the training data
@@ -37,21 +35,31 @@ class NaiveBayes:
         self.alpha = alpha
         self.vocab = TEXT.vocab
         self.labels = LABEL.vocab
+        # Store which label is which
+        self.label_map = {
+            self.labels.itos[0]: 0,
+            self.labels.itos[1]: 1
+        }
         # Initialize with zero seen pos or neg samples
-        self.p = self.alpha + np.zeros((self.vocab,))
-        self.q = self.alpha + np.zeros((self.vocab,))
+        self.p = self.alpha + np.zeros((len(self.vocab),))
+        self.q = self.alpha + np.zeros((len(self.vocab),))
+        # Initialize counts at 1 here also to prevent div by 0 error
+        self.nplus = 1
+        self.nminus = 1
         self.update()
+        print("Initialized NaiveBayes model with vocab size {}, label size {}".format(len(self.vocab), len(self.labels)))
+        print('\tself.p: {}\n\tself.q: {}\n\tself.r: {}\n\tself.b: {}'.format(self.p, self.q, self.r, self.b))
     
     def update(self):
-        self.r = np.log((self.p/self.p.sum()) / (self.q/self.q.sum()))
-        self.b = np.log(len(self.p) / len(self.q))
+        self.r = np.log((self.p/np.linalg.norm(self.p, ord=1)) / (self.q/np.linalg.norm(self.q, ord=1)))
+        self.b = np.log(self.nplus / self.nminus)
 
     def featurize(self, x):
         """
             Input: <vec> x
             Output: <vec> fx, featurized using the vocabulary
         """
-        output = np.zeros((self.vocab,))
+        output = np.zeros((len(self.vocab),))
         for word_idx in x:
             output[word_idx] = 1
         return output
@@ -68,13 +76,18 @@ class NaiveBayes:
                 y = train_batch.label[i]
                 if self.labels.itos[y.item()] == 'positive':
                   self.p += fx
+                  self.nplus += 1
                 else:
                   self.q += fx
+                  self.nminus += 1
             # And recalculate r & b
             self.update()
-            # Let's hope to see improvement at each batch
-            batch_acc = self.evaluate(val_iter)
-            print('Batch {} acc: {}'.format(batch_idx, batch_acc))
+            # Let's hope to see improvement at every 10 batches
+            if batch_idx % 10 == 0:
+              batch_acc = self.evaluate(val_iter)
+              print('val acc after training batch {}: {}'.format(batch_idx, batch_acc))
+              # print('\tself.p: {}\n\tself.q: {}\n\tself.r: {}\n\tself.b: {}'.format(self.p, self.q, self.r, self.b))
+
 
     def evaluate(self, val_iter):
         """
@@ -82,7 +95,8 @@ class NaiveBayes:
         """
         correct = 0
         total = 0
-        for val_batch in val_iter:
+
+        for batch_idx, val_batch in enumerate(val_iter):
             for i in range(len(val_batch)):
                 x = val_batch.text[:, i]
                 y = val_batch.label[i]
@@ -90,19 +104,15 @@ class NaiveBayes:
                 yhat = self.predict(fx)
                 if y == yhat:
                     correct += 1
+                # else:
+                    # print('\tgot this wrong: {} shouldve been {}'.format(yhat, y))
                 total += 1
+
         return float(correct / total)
 
     def predict(self, x):
         val = np.matmul(self.r.T, x) + self.b
-        if val > 0:
-            return 1
+        if val >= 0:
+            return self.label_map['positive']
         else:
-            return -1
-
-    # def test(self, test_batch):
-    #     """
-    #         Produces a distribution of probabilities for each sample in the provided batch.
-    #         Note the output should have an attribute 'classes' to work with the provided scoring function.
-    #     """
-    #     for batch_idx, test_batch
+            return self.label_map['negative']
