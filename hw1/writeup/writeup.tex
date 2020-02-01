@@ -52,7 +52,7 @@ We consider as features the unigrams within vocabulary $\mcV$, and define $\bold
   \boldr &= log(\frac{\boldp / ||\boldp||_1}{\boldq / ||\boldq||_1})
 \end{align}
 
-In this implementation, we consider \textit{binarized count vectors}, in which $\hat{\boldf}_j$ is 1 if feature $j$ occurs at least once in the sentence, and 0 otherwise. For Naive Bayes we additionally consider our weight matrix as the vector of log-count ratios, and use as a bias the log-ratio of the number of positive to negative samples. Formally, we thus define as parameters the following, where $N+$ is the number of positive samples and $N-$ is the number of negative samples:
+In this implementation, we consider \textit{binarized count vectors}, in which $\hat{\boldf}_j$ is 1 if feature $j$ occurs at least once in the sentence, and 0 otherwise. We additionally consider our weights $\boldW$ as a vector of log-count ratios, and use as a bias the log-ratio of the number of positive to negative samples. Formally, we define as parameters the following, where $N+$ is the number of positive samples and $N-$ is the number of negative samples:
 
 \begin{align}
   \boldx^{(k)} &= \hat{\boldf}^{(k)}, \hat{\boldf}^{(k)} = \textbf{1}\{f^{(k)} > 0\} \\
@@ -73,7 +73,7 @@ The Continuous Bag of Words (CBOW) model as described in \citep{mikolov2013effic
   \bolde = \frac{1}{n} \sum_{i=1}^{n} \bolde_i
 \end{align}
 
-This embedding is the input to a single-layer, fully-connected neural network using a softmax activation to learn a weight matrix and bias vector, as before. We take the argmax of the output of this linear layer as the prediction. As before, our implementation randomly initializes all model parameters, including the embeddings $\mcE$. Our training uses Pytorch's built-in CrossEntropy loss function and standard stochastic gradient descent (SGD) optimizer, and backpropagates loss at each batch.
+This embedding is the input to a single-layer, fully-connected neural network using a softmax activation to learn a weight matrix and bias vector, as before. We take the argmax of the output of this linear layer as the prediction. As before, our implementation randomly initializes all model parameters, including the embeddings $\mcE$.
 
 
 \subsection{CNN}
@@ -95,11 +95,11 @@ where $f$ is a non-linear activation function such as the rectified linear unit 
 
 A max-pooling over time operation is then applied over the feature map, which outputs the $c_i$ with the highest value as the value for that feature.
 
-In our implementation, we follow \cite{kim2014convolutional} and use the ReLU nonlinearity, filters with window sizes 3, 4 and 5, a dropout rate of $p=0.5$ to regularize against overfitting during training, and a softmax activation function over the final output. The argmax of the output of this final layer is our prediction. As before, our implementation uses Pytorch's built-in CrossEntropy loss, but following \cite{kim2014convolutional} we use the Adadelta optimizer. Of note, in our implementation we padded inputs to a minimum length of 5 to ensure the provided window sizes would work.
+In our implementation, we follow \cite{kim2014convolutional} and use the ReLU nonlinearity, filters with window sizes 3, 4 and 5, a dropout rate of $p=0.5$ to regularize against overfitting during training, and a softmax activation function over the final output. The argmax of the output of this final layer is our prediction. Of note, in our implementation we padded inputs to a minimum length of 5 to ensure the provided window sizes would work.
 
 \subsection{CNN*}
 
-The CNN model above is initialized with random values as the initial word embeddings. We also experimented with a variant that initialized with pretrained word embeddings, but otherwise used the same structure and training as the CNN described above. 
+The CNN model above is initialized with random values as the initial word embeddings. We also experimented with a variant that initialized with pretrained word embeddings, but otherwise used the same structure as the CNN described above. 
 
 \section{Experiments}
 
@@ -113,7 +113,7 @@ As depicted in Table \ref{tab:results}, our results show that when the learned m
    \midrule
    \textsc{MNB} & & 0.82\\
    \textsc{LR} & & 0.71\\
-   \textsc{CBOW} & & 0.66 \\
+   \textsc{CBOW} & & 0.77 \\
    \textsc{CNN} & & 0.70 \\
    \textsc{CNN*} & & 0.78 \\
    \bottomrule
@@ -121,21 +121,27 @@ As depicted in Table \ref{tab:results}, our results show that when the learned m
   \caption{\label{tab:results} Results from each model. LR, CBOW, CNN and CNN* models run with $lr=5e^{-2}$, $epochs=20$.}
   \end{table}
 
+% CBOW 5e-2, NLLLoss, Adam: 0.77
+
+Of note, the CBOW experiments used Pytorch's built-in NLLLoss loss function and the Adam optimizer, while the CNN and CNN* experiments used NLLLoss and the Adadelta optimizer per \cite{kim2014convolutional}. The LR experiments used Pytorch's built-in CrossEntropy and the Adam optimizer.
+
 Examination of the losses per epoch shows the learned models are in fact learning, e.g. the losses per epoch decrease over training time (Figure \ref{fig:losses}). From this we infer the low accuracies for the learned models are due to the training parameters used, and do not accurately speak to their performance relative to MNB.
 
 \begin{figure}[h]
   \centering
   \includegraphics[width=4in]{losses.png}
-  \caption{\label{fig:losses} Losses over time for the four learned models. All models trained with $lr=5e^{-2}$, $epochs=10$.}
+  \caption{\label{fig:losses} Losses over time for the four learned models. All models trained with $lr=5e^{-2}$, $epochs=20$.}
 \end{figure}
 
-Still, we can draw conclusions from the relative differences in performance between the learned models: for instance, CNN* significantly outperforms CNN, as expected, and both outperform LR and CBOW.
+Still, we can draw conclusions from the relative differences in performance between the learned models: for instance, CNN* significantly outperforms CNN, as expected.
 
 \section{Conclusion}
 
-This assignment investigated the use of 5 simple models for text classification. We implemented one count-based model, the Multinomial Naive Bayes (MNB), and four learned models, Logistic Regression (LR), Continuous Bag-of-Words (CBOW), Convolutional Neural Network (CNN) and a variant of the CNN initialized with pretrained word embeddings (CNN*). As shown in Table \ref{tab:results}, MNB performed best in our set of experiments, with a test-set accuracy of 0.82. Trained for 10 epochs with a learning rate of $5e^{-2}$, the four learned models (LR, CBOW, CNN, CNN*) did not perform as well as the MNB standard, but the relative accuracies achieved by these models highlight the differences between them: specifically, CNN* outperformed CNN as expected.
+This assignment explored the use of 5 simple models for text classification, as a way to gain familiarity with the tools to be used in this course. 
 
-Further work might investigate additional hyperparameter tuning schemes to refine the learned models, for example by using learning rate annealing techniques, or simply training for more epochs. Further work should also pursue the use of novel representations of words and sentences as inputs to these models, for instance larger pretrained word embeddings derived from different sources (e.g. BERT), the use of parse trees and other semantic information, or even simply using n-grams more complex than unigrams in a count-based approach.
+We implemented one count-based model, the Multinomial Naive Bayes (MNB), and four learned models, Logistic Regression (LR), Continuous Bag-of-Words (CBOW), Convolutional Neural Network (CNN) and a variant of the CNN initialized with pretrained word embeddings (CNN*). As shown in Table \ref{tab:results}, MNB performed best in our set of experiments, with a test-set accuracy of 0.82. Trained for 20 epochs with a learning rate of $5e^{-2}$, the four learned models (LR, CBOW, CNN, CNN*) did not perform as well as the MNB standard, but the relative accuracies achieved by these models highlight the differences between them. Notably, CNN* significantly outperformed CNN, as expected.
+
+Further work might investigate additional hyperparameter tuning schemes to refine the learned models, for example by using learning rate annealing techniques. Further work should also pursue the use of novel representations of words and sentences as inputs to these models, for instance larger pretrained word embeddings derived from different sources (e.g. BERT), the use of parse trees and other semantic information, or even simply additional hand-tuned features, such as bigram and trigram frequencies.
 
 
 \bibliographystyle{apalike}
