@@ -68,7 +68,6 @@ if __name__ == "__main__":
     train_iter, val_iter, test_iter = torchtext.data.BucketIterator.splits((train, val, test), batch_size=10, device=-1, repeat = False)
 
     if args.m == "NaiveBayes":
-        epochs = 1
         alpha = 1
         model = NaiveBayes(alpha, TEXT, LABEL)
         model.train(train_iter, val_iter)

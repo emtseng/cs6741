@@ -13,4 +13,8 @@ source py37/bin/activate
 pip install -r requirements.txt
 ```
 
+## 1) Testing
 
+```cli
+python test.py -m <model name>
+```
