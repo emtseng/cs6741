@@ -3,6 +3,7 @@
 \usepackage{common}
 \usepackage{amsmath}
 \DeclareMathOperator*{\E}{\mathbb{E}}
+\usepackage{booktabs}
 
 \title{HW2: Language Modeling}
 \author{Emily Tseng \\ et397@cornell.edu}
@@ -11,9 +12,9 @@
 \maketitle{}
 \section{Introduction}
 
-In a sense, a language is just a set of community-driven rules for what words should appear in what order. Language modeling is a generative problem that attempts to formalize this ordering by computing a probability distribution over a given sequence. As an example, consider the incomplete sentence ``\textit{Tickets were sold out for the 2 p.m. \_\_\_\_\_}'' A language model properly trained over the English language would compute a greater probability for the sentence ending in ``\textit{movie}'' than, say, the sentence ending in ``\textit{banana}''. 
+In a sense, a language is just a set of community-driven rules for what words should appear in what order. Language modeling is a generative problem that attempts to formalize this ordering by computing a probability distribution over a given sequence. As an example, consider the incomplete sentence ``\textit{Tickets were sold out for the 2 p.m. \_\_\_\_\_}'' A language model properly trained over the English language would compute a greater probability for the next word being ``\textit{movie}'' than, say, ``\textit{banana}''. 
 
-The key is to generate a distribution as close as possible to the true distribution of your source language; or, in empirical terms, to maximize the probability (or minimize the perplexity) of the sentences in your test set. In this homework, we use data from the Penn Treebank \citep{marcus-etal-1993-building} to implement, train and assess several varieties of language models:
+The key is to generate a distribution as close as possible to the true distribution of your source language; or, in empirical terms, to maximize the probability (or minimize the perplexity) of your test set being drawn from your estimated distribution. In this homework, we use data from the Penn Treebank \citep{marcus-etal-1993-building} to implement, train and assess several varieties of language models:
 
 \begin{enumerate}
   \item A count-based trigram model with linear interpolation
@@ -30,151 +31,149 @@ For each of the above models, we report perplexity on the validation and testing
 
 \section{Problem Description}
 
-Consider a sentence as a sequence of tokens $x_{1:T}$ for a sentence of length $T$ where all tokens are drawn from the same unigram distribution $V$. In a given language, the probability of the sentence can be described as:
+Consider a sequence of tokens $x_{1:T}$ where all tokens are drawn from the same unigram distribution $V$. In a given language, the probability of the sentence can be described as:
 \begin{align*}
   p(x_{1:T}) = \prod_{i=1}^{T} p(x_{T} | x_1 ... x_{T-1})
 \end{align*}
 
-The goal of a language model is to estimate a distribution that maximizes the probabilities of the sentences in a provided test set. From information theory, we have the following ways to quantify a distribution: \textit{entropy} ($H$), a measure of deviance from the uniform distribution, and \textit{perplexity} ($PP$), the exponentiated entropy of a distribution and the measure commonly used in NLP. Formally defined, for a distribution $p$ with observations $x \in X$:
+The goal of a language model is to estimate a distribution that maximizes the probability of a given test sequence, i.e. by maximizing its probability. (Here we assume the test sequence is drawn from the same source as the training sequence.) We can assess the LM by examining the \textit{perplexity} ($PP$) of the testing sequence. Formally, for a testing sequence $x_{1:T}$, this is defined as:
 \begin{align*}
-  H(p) &= - \sum_{i} p(x=i) \log[p(x=i)] \\
-       &= - \E_{x\in p} \log[p(x)] \\
-  PP(p) &= \exp{H(p)} 
+  PP(x_{1:T}) &= \sqrt[T]{\frac{1}{p(x_{1:T})}}
 \end{align*}
 
-The goal of this assignment will be to train language models that mimic the perplexities reported in the source papers as closely as possible.
+A generalizable LM will rate the probability of an unseen testing sequence highly, which should result in a low perplexity. In addition to perplexity, in extension (1) we consider the information theoretic principle of the \textit{KL divergence} between two distributions. Formally, for estimated distribution $q$ and source distribution $p$, we can define:
+\begin{align*}
+  KL(p,q) &= - \E_{x\in p} [\log(q(x)) - \log(p(x))] \\
+  &= \E_{x\in p} \log \frac{p(x)}{q(x)}
+\end{align*}
 
-% In general, homeworks will be specified using informal
-% language. As part of the assignment, we expect you to write-out a
-% definition of the problem and your model in formal language. For this
-% class, we will use the following notation:
-
-% \begin{itemize}
-% \item $\boldb, \boldm$;  bold letters for vectors.
-% \item $\boldB, \boldM$;  bold capital letters for matrices.
-% \item $\mcB, \mcM$;  script-case for sets.
-% \item $b_i, x_i$; lower case for scalars or indexing into vectors.
-% \end{itemize}
-
-
-% For instance in natural language processing, it is common to use
-% discrete sets like $\mcV$ for the vocabulary of the language, or $\mcT$ for a
-% tag set of the language.  We might also want one-hot vectors
-% representing words. These will be of the type
-% $\boldv \in \{0,1\}^{|\mcV|}$. In a note, it is crucial to define the
-% types of all variables that are introduced. The problem description is the
-% right place to do this.
-
-% NLP is also
-% full of sequences. For instance sentences, $w_1, \ldots, w_N$, where
-% here $N$ is a constant length and $w_i \in \mcV$ for all
-% $i \in \{1, \ldots N\}$. If we pretend sentences are all the same
-% length, we can have scoring function over sentences,
-% $s : \mcV^N \mapsto \reals$.  One might be defined as:
-
-% \[ s(w_1, \ldots, w_N) = \sum_{i = 1}^N p(w_i | w_{i-2}, w_{i-1}), \]
-
-% \noindent where $p$ is the bigram probability, which we will cover later in the class.
+KL divergence is 0 when the distributions are the same.
 
 \section{Model and Algorithms}
 
 \subsection{Count-based Trigram Model with Linear Interpolation}
 
-$$p(y_t | y_{1:t-1}) =  \alpha_1 p(y_t | y_{t-2}, y_{t-1}) + \alpha_2 p(y_t | y_{t-1}) + (1 - \alpha_1 - \alpha_2) p(y_t) $$
+A trigram model computes the probability of the next word in a sequence as a linear combination of the probabilities of the trigram, bigram and unigram trailing from that word. Informally, the probability of ``\textit{movie}'' coming after ``\textit{2 p.m.}'' would be modeled as a weighted combination of the probability that ``\textit{movie}'' comes after ``\textit{2 p.m.}'' (trigram), the probability that ``\textit{movie}'' comes after ``\textit{p.m.}'' (bigram), and the probability of the word ``\textit{movie}'' itself (unigram). Formally:
+$$ p(y_t | y_{1:t-1}) =  \alpha_1 p(y_t | y_{t-2}, y_{t-1}) + \alpha_2 p(y_t | y_{t-1}) + (1 - \alpha_1 - \alpha_2) p(y_t) $$
+
+The probability of a sequence can thus be modeled as the product of the trigrams within it:
+$$ p(y_{1:T}) = \prod_{1}^{T} p(y_T|y_{T-2},y_{T-1}) $$
+
+Following the approach outlined in \cite{collins2013}, we compute the constituent probabilities of a trigram using maximum-likelihood estimates. Formally, where $c(x)$ denotes the raw count of the argument within the training corpus and $c()$ denotes the total corpus---not vocabulary---size, we define:
+\begin{align*}
+  q_{ML}(y_t|y_{t-2},y_{t-1}) &= \frac{c(y_{t-2}, y_{t-1}, y_t)}{c(y_{t-2}, y_{t-1})} \\
+  q_{ML}(y_t|y_{t-1}) &= \frac{c(y_{t-1}, y_t)}{c(y_{t-1})} \\
+  q_{ML}(y_t) &= \frac{c(y_t)}{c()}
+\end{align*}
 
 \subsection{EM Algorithm for $a$ Estimation}
 
+In the above model, the smoothing parameters $\alpha_1$ and $\alpha_2$ can be estimated using an expectation-maximization (EM) approach.
+
+
 \subsection{Neural Network Language Model}
+
+\cite{bengio2003neural} describes a neural network approach to constructing an n-gram language model. Per their model, the probability of the correct next word $P(w_i = x_t|x_{1:t-1})$ is estimated by the following:
+$$f(i, w_{t-1}...w_{t-n+1}) = g(i, C(w_{t-1})...C(w_{t-n-1}))$$
+Here, $C$ maps input n-grams to a shared word embedding space, and $g$ consists of the following:
+\begin{align*}
+  \hat{P}(w_t|w_{t-1}...w_{t-n+1})=\frac{\exp(y_{w_t})}{\sum_{i}\exp{y_i}} \\
+  y = b+Wx+U\tanh(d+Hx) \\
+  x = (C(w_{t-1}),C(w_{t-2})...C(w_{t-n+1})))
+\end{align*}
+
+Thus the parameters of this model are $\theta=\{b,W,U,d,H,C\}$. We apply as a loss function the average negative log-likelihood without regularization:
+$$L=\frac{1}{T} \sum_{t} \log f(w_t,w_{t-1}...w_{t-n+1}; \theta)$$
+
+Training occurs via stochastic gradient descent. After presenting the $t$th word of the training corpus, we optimize with learning rate $\epsilon$:
+$$\theta^{*} = \theta + \epsilon \frac{\partial \log \hat{P}(w_t|w_{t-1}...w_{t-n+1})}{\partial \theta}$$
+
+Note that the average negative log-likelihood is also the quantity needed for the perplexity calculation. Taking advantage of this, in our code we calculate model perplexity directly from the loss values generated at eatch batch.
 
 \subsection{LSTM Language Model}
 
+As described in \cite{zaremba2014recurrent}, an LSTM language model...
 
-% \begin{itemize}
-% \item diagrams of your model,
+\subsection{Calculating Perplexity}
 
-%   \begin{center}
-%     \includegraphics[width=0.4\textwidth]{network}
-%   \end{center}
-% \item feature tables,
-
-%   \begin{center}
-%     \begin{tabular}{@{}lll@{}}
-%       \toprule
-%       &\multicolumn{2}{c}{Mention Features  } \\
-%       & Feature & Value Set\\
-%       \midrule
-%       & Mention Head & $\mcV$ \\
-%       & Mention First Word & $\mcV$ \\
-%       & Mention Last Word & $\mcV$ \\
-%       & Word Preceding Mention & $\mcV$ \\
-%       & Word Following Mention & $\mcV$\\
-%       & \# Words in Mention & $\{1, 2, \ldots \}$ \\
-%       & Mention Type & $\mathcal{T}$ \\
-%       \bottomrule
-%     \end{tabular}
-%   \end{center}
-
-% \item pseudo-code,
-
-%   \begin{algorithmic}[1]
-%     \Procedure{Linearize}{$x_1\ldots x_N$, $K$, $g$}
-%     \State{$B_0 \gets \langle (\langle \rangle, \{1, \ldots, N\}, 0, \boldh_0, \mathbf{0})  \rangle$}
-%     \For{$m = 0, \ldots, M-1$ }
-%     \For{$k = 1, \ldots, |B_m|$}
-%     \For{$i \in \mcR$}
-%     \State{$(y, \mcR, s, \boldh) \gets \mathrm{copy}(B_m^{(k)})$}
-%     \For{word $w$ in phrase $x_i$}
-%     \State{$y \gets y $ append $w$ }
-%     \State{$s \gets s + \log q(w, \boldh) $ }
-%     \State{$\boldh \gets \delta(w, \boldh)$}
-%     \EndFor{}
-%     \State{$B_{m+|w_i|} \gets B_{m+|w_i|} + (y, \mcR - i, s,   \boldh)$}
-%     \State{keep top-$K$ of $B_{m+|w_i|}$ by $f(x, y) + g(\mcR)$}
-%     \EndFor{}
-%     \EndFor{}
-%     \EndFor{}
-%     \State{\Return{$B_{M}^{(k)}$}}
-%     \EndProcedure{}
-%   \end{algorithmic}
-
-% \end{itemize}
-
+Additionally, in this homework we were tasked with coming up with numerically stable ways to compute perplexity. Computers often have trouble computing very small sequence probabilities, so to avoid underflow problems, we used a derivation of perplexity that amounts to the exponentiated mean negative log likelihood of the probabilities of each constituent token:
+\begin{align*}
+  PP(x_{1:T}) &= [p(x_{1:T})]^{-\frac{1}{T}} \\
+  &= [\prod_{i} p(x_i)] ^{-\frac{1}{T}} \\
+  &= \prod_{i} [p(x_i) ^{-\frac{1}{T}}] \\
+  &= \prod_{i} \exp\log(p(x_i) ^{-\frac{1}{T}}) \\
+  &= \prod_{i} \exp[-\frac{1}{T}  \log(p(x_i))]\\
+  &= \exp[ \sum_{i}(
+    -\frac{\log(p(x_i))}{T} 
+  ) ]\\
+  PP(x_{1:T}) &= \exp[
+    -\frac{\sum_{i}{\log(p(x_i))}}{T} 
+  ]\\
+\end{align*}
 
 \section{Experiments}
 
-% Finally we end with the experimental section. Each assignment will make clear the main experiments and baselines that you should run. For these experiments you should present a main results table. Here we give a sample Table~\ref{tab:results}. In addition to these results you should describe in words what the table shows and the relative performance of the models.
+\begin{table}[h]
+  \centering
+  \begin{tabular}{@{}lrrr@{}}
+  \toprule
+  \textbf{Model} & \textbf{PP(train)} & \textbf{PP(val)} & \textbf{PP(test)} \\ \midrule
+  Trigram w/ Linear Interpolation & & 22.9 & 23.3 \\
+  Neural Network (random embedding initialization) & 397.2 & 415.0 & 388.5 \\ 
+  Neural Network (pretrained embedding initialization) & 358.9 & 351.6 & 328.5 \\ 
+  LSTM (random embedding initialization) & 138.5 & 150.0 & 139.5 \\ 
+  LSTM (pretrained embedding initialization) & 87.3 & 119.0 & 111.0 \\ 
+  \bottomrule
+  \end{tabular}
+  \caption{Perplexities of the implemented language models. Neural network models trained for 10 epochs, $embed\_dim=300$, $lr=1e^{-3}$, $hidden\_dim=1200$. LSTM models trained for 5 epochs, $embed\_dim=300$, $lr=1e^{-3}$, $hidden\_dim=1024$, $weight\_bound=0.05$, $dropout=0.5$.}
+  \label{tab:perplexities}
+\end{table}
 
-% Besides the main results we will also ask you to present other results
-% comparing particular aspects of the models. For instance, for word
-% embedding experiments, we may ask you to show a chart of the projected
-% word vectors. This experiment will lead to something like
-% Figure~\ref{fig:clusters}. This should also be described within the
-% body of the text itself.
+\subsection{Trigram LM}
 
+Our experiments with $a_1$ and $a_2$ are depicted in Table \ref{tab:a-pps}. As observed, the addition of bigram and trigram probabilities significantly lowered perplexity on training, validation and testing sets. 
 
-% \begin{table}[h]
-% \centering
-% \begin{tabular}{llr}
-%  \toprule
-%  Model &  & Acc. \\
-%  \midrule
-%  \textsc{Baseline 1} & & 0.45\\
-%  \textsc{Baseline 2} & & 2.59 \\
-%  \textsc{Model 1} & & 10.59  \\
-%  \textsc{Model 2} & &13.42 \\
-%  \textsc{Model 3} & & 7.49\\
-%  \bottomrule
-% \end{tabular}
-% \caption{\label{tab:results} Table with the main results.}
-% \end{table}
+Of note, these models handled out-of-vocabulary n-grams by first backing off to combinations of words with the unk token, which was abundant in the training corpus. If backing off to an unknown token still produces an unseen combination (e.g. \textit{(unk, unk, banana)} when the model has never seen `\textit{banana}' come after \textit{(unk, unk)}), the model assigns zero probability to the entire n-gram. Since the presence of the unknown token as a unigram in the training set meant unigram probabilities never backed off to 0, the perplexity values for the unigram-heavy interpolations appear inflated.
 
+\begin{table}[h]
+  \centering
+  \begin{tabular}{@{}rrrrr@{}}
+  \toprule
+  \textbf{$a_1$} & \textbf{$a_2$} & \textbf{PP(train)} & \textbf{PP(val)} & \textbf{PP(test)} \\ \midrule
+  0 & 0 & 684.9 & 687.0 & 639.2 \\
+  0 & 0.50 & 115.5 & 103.0 & 103.9 \\
+  0.33 & 0.33 & 19.7 & 47.3 & 48.5 \\
+  0.70 & 0.20 & 12.6 & 45.2 & 46.7 \\
+  0.10 & 0.20 & 44.0 & 77.9 & 79.2 \\
+  \bottomrule
+  \end{tabular}
+  \caption{Effect of different $a$ on perplexity.}
+  \label{tab:a-pps}
+\end{table}
 
-% \begin{figure}
-%   \centering
-%   \includegraphics[width=6cm]{cluster_viz}
-%   \caption{\label{fig:clusters} Sample qualitative chart.}
-% \end{figure}
+\subsection{Neural Network LM}
 
+We experimented with two variations on the neural network specified in \cite{bengio2003neural}: one with randomly initialized embeddings $C$, and one initialized with pretrained embeddings pulled from the WikiVec corpus provided in the last assignment. As depicted in Figure \ref{fig:nn-pps}, both models were able to stabilize perplexities from high values close to initialization to more reasonable values within 5 epochs.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.45\textwidth]{figures/nn_naive_pp.png}
+  \includegraphics[width=0.45\textwidth]{figures/nn_pretrained_pp.png}
+  \caption{Train- and val-set perplexities over epochs for neural network trigram models with (L) random embedding initialization and (R) pretrained embedding initialization. Within the first epoch the model begins to overfit to the training set. $lr=1e^{-3}$, $embed\_dim=300$}
+  \label{fig:nn-pps}
+\end{figure}
+
+\subsection{LSTM}
+
+Similarly, our LSTM results using random vs. pretrained embedding initialations show perplexities over epochs decrease steadily on both the training and validation sets (Figure \ref{fig:lstm-pps}). Notably, the pretrained LSTM in the run depicted was able to achieve a training perplexity below 100 (87.3, reported in Table \ref{tab:perplexities}) on the fifth epoch.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.45\textwidth]{figures/lstm_naive_pp.png}
+  \includegraphics[width=0.45\textwidth]{figures/lstm_pretrained_pp.png}
+  \caption{Train- and val-set perplexities over epochs for LSTM models with (L) random embedding initialization and (R) pretrained embedding initialization. $embed\_dim=300$, $lr=1e^{-3}$, $hidden\_dim=650$, $weight\_bound=0.05$, $dropout=0.5$}
+  \label{fig:lstm-pps}
+\end{figure}
 
 \section{Conclusion}
 
