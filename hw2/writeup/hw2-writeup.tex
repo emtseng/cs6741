@@ -3,6 +3,7 @@
 \usepackage{common}
 \usepackage{amsmath}
 \DeclareMathOperator*{\E}{\mathbb{E}}
+\DeclareMathOperator*{\R}{\mathbb{R}}
 \usepackage{booktabs}
 
 \title{HW2: Language Modeling}
@@ -54,7 +55,8 @@ KL divergence is 0 when the distributions are the same.
 \subsection{Count-based Trigram Model with Linear Interpolation}
 
 A trigram model computes the probability of the next word in a sequence as a linear combination of the probabilities of the trigram, bigram and unigram trailing from that word. Informally, the probability of ``\textit{movie}'' coming after ``\textit{2 p.m.}'' would be modeled as a weighted combination of the probability that ``\textit{movie}'' comes after ``\textit{2 p.m.}'' (trigram), the probability that ``\textit{movie}'' comes after ``\textit{p.m.}'' (bigram), and the probability of the word ``\textit{movie}'' itself (unigram). Formally:
-$$ p(y_t | y_{1:t-1}) =  \alpha_1 p(y_t | y_{t-2}, y_{t-1}) + \alpha_2 p(y_t | y_{t-1}) + (1 - \alpha_1 - \alpha_2) p(y_t) $$
+$$p(y_t | y_{1:t-1}) = \alpha_1 p(y_t | y_{t-2}, y_{t-1}) + \alpha_2 p(y_t | y_{t-1}) + (1 - \alpha_1 - \alpha_2) p(y_t)$$
+$$\alpha_1 + \alpha_2 \leq 1$$
 
 The probability of a sequence can thus be modeled as the product of the trigrams within it:
 $$ p(y_{1:T}) = \prod_{1}^{T} p(y_T|y_{T-2},y_{T-1}) $$
@@ -68,7 +70,7 @@ Following the approach outlined in \cite{collins2013}, we compute the constituen
 
 \subsection{EM Algorithm for $a$ Estimation}
 
-In the above model, the smoothing parameters $\alpha_1$ and $\alpha_2$ can be estimated using an expectation-maximization (EM) approach.
+In the above model, the smoothing parameters $\alpha_1$ and $\alpha_2$ can be estimated using an expectation-maximization (EM) approach. We begin by imagining a latent categorical variable $Z$ defining a distribution $p(Z)$ over three choices: a trigram-only model ($\alpha_1=1.0,\alpha_2=0$), a bigram-only model ($\alpha_1=0,\alpha_2=1.0$), and a unigram-only model ($\alpha_1=0,\alpha_2=0$).
 
 
 \subsection{Neural Network Language Model}
@@ -92,7 +94,39 @@ Note that the average negative log-likelihood is also the quantity needed for th
 
 \subsection{LSTM Language Model}
 
-As described in \cite{zaremba2014recurrent}, an LSTM language model...
+As described in \cite{zaremba2014recurrent}, an LSTM language model learns long-range dependencies between elements of a sequence through deterministic transitions from previous to current hidden states. Given hidden layer $l$ at timestamp $t$ denoted as $h_t^{l}$, affine transformation $Wx+b$ denoted as $T_{n,m}: \R^n \rightarrow \R^m$, element-wise multiplication denoted as $\odot$ and $h_t^0$ used to represent an input word vector at a given timestep, we use activations $h_t^{L}$ to predict $y_t$, where $L$ is the number of layers in our deep LSTM. We can formally define the network thus:
+\begin{align*}
+  h_t^{l-1},h_{t-1}^{l},c_{t-1}^{l} \rightarrow h_t^l, c_t^l \\
+  \begin{pmatrix}
+    i \\
+    f \\
+    o \\
+    g \\
+  \end{pmatrix} = 
+  \begin{pmatrix}
+    sigm \\
+    sigm \\
+    sigm \\
+    tanh \\
+  \end{pmatrix} T_{2n,4n} \begin{pmatrix}
+    D(h_t^{l-1}) \\
+    h_{t-1}^l \\
+  \end{pmatrix}
+  \\
+  c_t^l = f \odot c_{t-1}^{l} + i \odot g \\
+  h_t^l = o \odot \tanh(c_t^l)
+\end{align*}
+
+Here, D is the dropout operator that sets a random subset of its argument to zero, according to a provided dropout rate. The rest of the LSTM internals are described in Figure \ref{fig:lstm} from \cite{zaremba2014recurrent}.
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.5\textwidth]{figures/lstm.png}
+  \caption{Graphical depiction of LSTM memory cells, from \cite{zaremba2014recurrent}}
+  \label{fig:lstm}
+\end{figure}
+
+Per \cite{zaremba2014recurrent}, we initialized our first hidden state with zeros, and from there initialized the subsequent hidden states within a batch with the output of the last batch. Our LSTMs had 650 units per layer, and we additionally initialized LSTM parameters uniformly, with a weight bound of [-0.05, 0.05], applied a dropout rate of 0.5, and clipped gradients to a norm of 5 to prevent vanishing gradient problems.
+
 
 \subsection{Calculating Perplexity}
 
@@ -118,14 +152,14 @@ Additionally, in this homework we were tasked with coming up with numerically st
   \begin{tabular}{@{}lrrr@{}}
   \toprule
   \textbf{Model} & \textbf{PP(train)} & \textbf{PP(val)} & \textbf{PP(test)} \\ \midrule
-  Trigram w/ Linear Interpolation & & 22.9 & 23.3 \\
+  Trigram w/ Linear Interpolation & 12.6 & 45.2 & 46.7 \\
   Neural Network (random embedding initialization) & 397.2 & 415.0 & 388.5 \\ 
   Neural Network (pretrained embedding initialization) & 358.9 & 351.6 & 328.5 \\ 
   LSTM (random embedding initialization) & 138.5 & 150.0 & 139.5 \\ 
   LSTM (pretrained embedding initialization) & 87.3 & 119.0 & 111.0 \\ 
   \bottomrule
   \end{tabular}
-  \caption{Perplexities of the implemented language models. Neural network models trained for 10 epochs, $embed\_dim=300$, $lr=1e^{-3}$, $hidden\_dim=1200$. LSTM models trained for 5 epochs, $embed\_dim=300$, $lr=1e^{-3}$, $hidden\_dim=1024$, $weight\_bound=0.05$, $dropout=0.5$.}
+  \caption{Perplexities of the implemented language models. Trigram model run with $a_1=0.7$, $a_2=0.2$. Neural network models trained for 10 epochs, $embed\_dim=300$, $lr=1e^{-3}$, $hidden\_dim=1200$. LSTM models trained for 5 epochs, $embed\_dim=300$, $lr=1e^{-5}$, $hidden\_dim=650$, $weight\_bound=0.05$, $dropout=0.5$.}
   \label{tab:perplexities}
 \end{table}
 
@@ -177,7 +211,9 @@ Similarly, our LSTM results using random vs. pretrained embedding initialations 
 
 \section{Conclusion}
 
-End the write-up with a very short recap of the main experiments and the main results. Describe any challenges you may have faced, and what could have been improved in the model.
+In this assignment, we implemented several approaches to language modeling: (1) a count-based trigram model with linear interpolation; (2) variants on a neural network model; and (3) variants on an LSTM. Trained with and evaluated against data from the Penn Treebank \citep{marcus-etal-1993-building}. The resulting perplexity values (Tables \ref{tab:perplexities}, \ref{tab:a-pps}) show the LSTM models ``learned'' more rapidly than the neural networks, reaching lower perplexities in the same training timeframe (5 epochs). Further work might investigate approaches to fine-tuning the hyperparameters of these models for coherent comparisons of model efficacy, for example grid searches for efficient learning rates.
+
+This assignment also highlighted practical considerations for implementing perplexity calculations. While conceptually straightforward, 
 
 \bibliographystyle{apalike}
 \bibliography{hw2-writeup}
