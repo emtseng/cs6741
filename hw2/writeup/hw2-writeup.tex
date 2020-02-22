@@ -15,7 +15,7 @@
 
 In a sense, a language is just a set of community-driven rules for what words should appear in what order. Language modeling is a generative problem that attempts to formalize this ordering by computing a probability distribution over a given sequence. As an example, consider the incomplete sentence ``\textit{Tickets were sold out for the 2 p.m. \_\_\_\_\_}'' A language model properly trained over the English language would compute a greater probability for the next word being ``\textit{movie}'' than, say, ``\textit{banana}''. 
 
-The key is to generate a distribution as close as possible to the true distribution of your source language; or, in empirical terms, to maximize the probability (or minimize the perplexity) of your test set being drawn from your estimated distribution. In this homework, we use data from the Penn Treebank \citep{marcus-etal-1993-building} to implement, train and assess several varieties of language models:
+The task is to generate a distribution as close as possible to the true distribution of your source language; or, in empirical terms, to maximize the probability (or minimize the perplexity) of your test set being drawn from your estimated distribution. In this homework, we use data from the Penn Treebank \citep{marcus-etal-1993-building} to implement and assess the following:
 
 \begin{enumerate}
   \item A count-based trigram model with linear interpolation
@@ -23,7 +23,9 @@ The key is to generate a distribution as close as possible to the true distribut
   \item A Long Short-Term Memory (LSTM) language model \citep{zaremba2014recurrent}
 \end{enumerate}
 
-For each of the above models, we report perplexity on the validation and testing sets. We additionally consider the following two extensions:
+For each of the above models, we report perplexity on the validation and testing sets. 
+
+We additionally consider the following extensions:
 
 \begin{enumerate}
   \item Consider 3-4 train and test contexts and do an information-theoretic analysis of the output of the model. What is the entropy of the distribution? What is the KL between different models, and what does this tell us about the predictions and the contexts?
@@ -68,10 +70,9 @@ Following the approach outlined in \cite{collins2013}, we compute the constituen
   q_{ML}(y_t) &= \frac{c(y_t)}{c()}
 \end{align*}
 
-\subsection{EM Algorithm for $a$ Estimation}
+% \subsection{EM Algorithm for $a$ Estimation}
 
-In the above model, the smoothing parameters $\alpha_1$ and $\alpha_2$ can be estimated using an expectation-maximization (EM) approach. We begin by imagining a latent categorical variable $Z$ defining a distribution $p(Z)$ over three choices: a trigram-only model ($\alpha_1=1.0,\alpha_2=0$), a bigram-only model ($\alpha_1=0,\alpha_2=1.0$), and a unigram-only model ($\alpha_1=0,\alpha_2=0$).
-
+% In the above model, the smoothing parameters $\alpha_1$ and $\alpha_2$ can be estimated using an expectation-maximization (EM) approach. We begin by imagining a latent categorical variable $Z$ defining a distribution $p(Z)$ over three choices: a trigram-only model ($\alpha_1=1.0,\alpha_2=0$), a bigram-only model ($\alpha_1=0,\alpha_2=1.0$), and a unigram-only model ($\alpha_1=0,\alpha_2=0$).
 
 \subsection{Neural Network Language Model}
 
@@ -147,6 +148,8 @@ Additionally, in this homework we were tasked with coming up with numerically st
 
 \section{Experiments}
 
+The results of our experiments are depicted in Table \ref{tab:perplexities}. We now discuss results from each model.
+
 \begin{table}[h]
   \centering
   \begin{tabular}{@{}lrrr@{}}
@@ -167,7 +170,7 @@ Additionally, in this homework we were tasked with coming up with numerically st
 
 Our experiments with $a_1$ and $a_2$ are depicted in Table \ref{tab:a-pps}. As observed, the addition of bigram and trigram probabilities significantly lowered perplexity on training, validation and testing sets. 
 
-Of note, these models handled out-of-vocabulary n-grams by first backing off to combinations of words with the unk token, which was abundant in the training corpus. If backing off to an unknown token still produces an unseen combination (e.g. \textit{(unk, unk, banana)} when the model has never seen `\textit{banana}' come after \textit{(unk, unk)}), the model assigns zero probability to the entire n-gram. Since the presence of the unknown token as a unigram in the training set meant unigram probabilities never backed off to 0, the perplexity values for the unigram-heavy interpolations appear inflated.
+Of note, these models handled out-of-vocabulary n-grams by first backing off to combinations of words with the unk token, which was abundant in the training corpus. If backing off to an unknown token still produces an unseen combination (e.g. \textit{(unk, unk, banana)} when the model has never seen `\textit{banana}' come after \textit{(unk, unk)}), the model assigns zero probability to the entire n-gram. Since the presence of the unknown token as a unigram in the training set meant unigram probabilities never backed off to 0, the perplexity values for the unigram-heavy interpolations appear inflated relative to those that gave higher weight to bigram and trigram probabilities. Further work should investigate other methods of out-of-vocabulary handling.
 
 \begin{table}[h]
   \centering
@@ -209,11 +212,37 @@ Similarly, our LSTM results using random vs. pretrained embedding initialations 
   \label{fig:lstm-pps}
 \end{figure}
 
+\subsection{Extension 1}
+
+We now report information theoretic analyses of each of the models for the following training and testing contexts: training batch 1 (1), training batch 7 (2), testing batch 117 (3), and testing batch 231 (4). The entropies of each context as assessed by each model are reported in Table \ref{tab:entropies}.
+% \begin{enumerate}
+%   \item ``\textit{president and chief executive officer of this financially troubled department store chain effective nov. N succeeding frank robertson who is retiring early $<$eos$>$ mr. $<$unk$>$ was previously president and chief operating officer}'' (training batch 1)
+%   \item ``\textit{acceptance corp. N N N to N days N N N to N days N N N to N days N N N to N days N N N to N days}'' (training batch 7)
+%   \item ``\textit{in london each giving buyers the right to buy one hong kong telecommunications share at a price to be determined friday $<$eos$>$ the N million warrants will be priced at hk\$ N}'' (testing batch 117)
+%   \item ``\textit{john $<$unk$>$ $<$unk$>$ 's chief executive officer $<$eos$>$ at usa today ad pages totaled N for the quarter down N N from the N period which was helped by increased ad spending}'' (testing batch 231)
+% \end{enumerate}
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{@{}lrrrr@{}}
+  \toprule
+  \textbf{Model p} & \textbf{H(1$\sim$p)} & \textbf{H(2$\sim$p)} & \textbf{H(3$\sim$p)} & \textbf{H(4$\sim$p)} \\ \midrule
+  Trigram w/ Linear Interpolation ($a_1=0.7$,$a_2=0.1$) & 2.5 & 2.5 & 4.0 & 3.9 \\
+  Neural Network (pretrained embedding initialization) & 6.1 & 5.7 & 5.7 & 5.5 \\
+  LSTM (pretrained embedding initialization) & 4.4 & 4.1 & 4.6 & 4.5 \\
+  \bottomrule
+  \end{tabular}
+  \caption{Entropies of each training or testing context (above) under each model.}
+  \label{tab:entropies}
+\end{table}
+
 \section{Conclusion}
 
 In this assignment, we implemented several approaches to language modeling: (1) a count-based trigram model with linear interpolation; (2) variants on a neural network model; and (3) variants on an LSTM. Trained with and evaluated against data from the Penn Treebank \citep{marcus-etal-1993-building}. The resulting perplexity values (Tables \ref{tab:perplexities}, \ref{tab:a-pps}) show the LSTM models ``learned'' more rapidly than the neural networks, reaching lower perplexities in the same training timeframe (5 epochs). Further work might investigate approaches to fine-tuning the hyperparameters of these models for coherent comparisons of model efficacy, for example grid searches for efficient learning rates.
 
-This assignment also highlighted practical considerations for implementing perplexity calculations. While conceptually straightforward, 
+This assignment also highlighted practical considerations for implementing perplexity calculations. While conceptually straightforward, in practice it is clear further debugging is needed to work out why the perplexity values vary so greatly within the trigram models.
+
+Finally, at submission time neither extension had been completed. We look to these as future areas of work.
 
 \bibliographystyle{apalike}
 \bibliography{hw2-writeup}
