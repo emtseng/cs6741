@@ -5,6 +5,7 @@
 \usepackage{amsmath}
 \DeclareMathOperator*{\E}{\mathbb{E}}
 \DeclareMathOperator*{\R}{\mathbb{R}}
+% \DeclareMathOperator*{\L}{\mathcal{L}}
 \usepackage{booktabs}
 
 \title{HW3: Paper Reading}
@@ -63,11 +64,7 @@ Extracted rationales were evaluated using the \textit{mean average precision (MA
 
 \paragraph{What is the model? Roughly how many parameters does the model have?} 
 
-VALTA is a combination of (1) an inference model with parameters $\theta_i$ and (2) a sentence-level generative network with parameters $\theta_g$. Assume review $x_{i,u}$ written by user $u$ about item $i$. We take $x_{i,u,s}$ to mean the sentence $s$ of review $x_{i,u}$, and $z_{i,u,s}$ to mean the aspect assignment of sentence $x_{i,u,s}$. (In this paper's simplification, a sentence is assumed to discuss just one aspect.) With this, we can represent the aspect-specific topic distributions of $x_{i,u}$ as $\psi_{i,u}$. The two component networks are thus:
-\begin{align*}
-  q_{\theta_i}(\psi_{i,u},z_{i,u}|x_i,x_u,x_{i,u}) &= q_{\theta_i}(\psi_{i,u} | x_i,x_u) \prod_s q_{\theta_i}(z_{i,u,s}|x_{i,u,s}) \\
-  p_{\theta_g}(x_{i,u},z_{i,u},\psi_{i,u}) &= \prod_s p_{\theta_g}(x_{i,u,s}|z_{i,u,s},\psi_{i,u})p(z_{i,u,s})\prod_a p(\psi_{i,u,a})
-\end{align*}
+VALTA is a combination of (1) an inference model with parameters $\theta_i$ and (2) a sentence-level generative network with parameters $\theta_g$. Assume review $x_{i,u}$ written by user $u$ about item $i$. We take $x_{i,u,s}$ to mean the sentence $s$ of review $x_{i,u}$, and $z_{i,u,s}$ to mean the aspect assignment of sentence $x_{i,u,s}$. (In this paper's simplification, a sentence is assumed to discuss just one aspect.) With this, we can represent the aspect-specific topic distributions of $x_{i,u}$ as $\psi_{i,u}$. The structure of the model is depicted in Figure \ref{fig:valta}, where $A$ denotes the total number of aspects, $K$ denotes the number of sub-aspects, $V$ is the vocabulary size and $H$ is the hidden state size. Here $\omega_{i,u,s}$ denotes the aspect log-probabilities for a given $x_{i,u,s}$.
 
 \begin{figure}[h]
   \centering
@@ -76,17 +73,43 @@ VALTA is a combination of (1) an inference model with parameters $\theta_i$ and 
   \label{fig:valta}
 \end{figure}
 
-\paragraph{What is the latent structure?}
+The two component networks are thus:
+\begin{align*}
+  q_{\theta_i}(\psi_{i,u},z_{i,u}|x_i,x_u,x_{i,u}) &= q_{\theta_i}(\psi_{i,u} | x_i,x_u) \prod_s q_{\theta_i}(z_{i,u,s}|x_{i,u,s}) \\
+  p_{\theta_g}(x_{i,u},z_{i,u},\psi_{i,u}) &= \prod_s p_{\theta_g}(x_{i,u,s}|z_{i,u,s},\psi_{i,u})p(z_{i,u,s})\prod_a p(\psi_{i,u,a})
+\end{align*}
 
-\paragraph{What is the inference approach?}
+\paragraph{What is the latent structure?} VALTA has two latent variables: $z$, a set of aspect assignments for $x_{i,u,s}$, and $\psi$, a set of topic proportions for $x_{i,u}$.
 
-\paragraph{If they use amortized inference, what is the amortized model? How many parameters does it have?}
+\paragraph{What is the inference approach?} The inference network learns a joint embedding $x_{i,u}$ of the separated distributions $x_i$ and $x_u$, corresponding to item- and user-level aspect preferences. To use these embeddings to infer $p(\psi)$ (topic proportions) and $p(z)$ (per-sentence aspect assignment proportions), which would be best represented as Dirichlet and discrete distributions, respectively, the paper makes use of a technique to transform the hidden representations of $x_{i,u}$ into a Concrete distribution via a Gumbel softmax reparameterization to form $\psi_{i,u}$. We describe this further below.
 
-\paragraph{What is the training objective?}
+\paragraph{If they use amortized inference, what is the amortized model? How many parameters does it have?} I am not sure whether this constitutes amortized inference. Technically I suppose $\psi_{i,u}$ is a set of parameters for the user and the item shared/amortized for each sentence, but this is also inherent to the setup of the problem.
 
-\paragraph{What training / inference approximations does the paper make?}
+\paragraph{What is the training objective?} First, users' overall ratings for an item $\hat{r}_{i,u}$ are predicted from importance-weighted ratings per aspect. Given global rating bias $\beta_0$ and item and user biases $\beta_i$ and $\beta_u$, we can define:
+$$\hat{r}_{i,u} = \beta_0 + \beta_i + \beta_u + \frac{1}{A} \sum_{a=1}^A \lambda_{i,u,a} \hat{r}_{i,u,a}$$
 
-\paragraph{Does the paper evaluate interpretability? If so how?}
+Aspect importance vectors $\lambda_{i,u,a}$ are derived from the sentence encoder (Figure \ref{fig:valta}). We define that encoder as $f_{\theta_{g}}^{aspect}(\cdot)$, and use it to extract $\lambda$s from collections of user-item pairs:
+\begin{align*}
+  \lambda_i &= f_{\theta_{g}}^{aspect} (h_i) \\ \lambda_u &= f_{\theta_{g}}^{aspect} (h_u) \\
+  \lambda_{i,u} &= \frac{1}{2}(\lambda_i+\lambda_u)
+\end{align*}
+
+Similarly, aspect ratings $\hat{r}_{i,u,a}$ are predicted by re-using the inputs to the concrete distributions ($\rho_{i,u}$ in Figure \ref{fig:valta}):
+$$\hat{r}_{i,u,a} = \sum_{k=1}^{K} \rho_{i,u,a,k}$$
+
+Using this method to predict ratings from (user, item) review pairs, we can define an overall objective for VALTA thus:
+\begin{align*}
+\mathcal{L}(\theta_i,\theta_g) &= \mathcal{L}_{gen}^x + \mathcal{L}_{mse}^{r}+\mathcal{L}_{KL}^{\psi}+\mathcal{L}_{KL}^{z} \\
+\mathcal{L}_{gen}^x(\theta_i,\theta_g) &= \E[\log \prod_s p_{\theta_g}(x_{i,u,s}|\psi_{i,u},z_{i,u,s})] \\
+\mathcal{L}_{mse}^{r}(\theta_g) &= \log p_{\theta_g}(r_{i,u}|x_i,x_u) \\
+\mathcal{L}_{KL}^{z}(\theta_i,\theta_g) &= -\E[log\prod_s \frac{q_{\theta_i}(z_{i,u,s}|x_{i,u,s})}{p_{\theta_g}(z_{i,u,s})}] \\ 
+\mathcal{L}_{KL}^{\psi}(\theta_i,\theta_g) &= -\E[log \frac{q_{\theta_i}(\psi_{i,u}|x_i, x_u)}{p_{\theta_g}(\psi_{i,u})}]
+\end{align*}
+
+
+\paragraph{What training / inference approximations does the paper make?} The paper approximates $p(z)$ and $p(\psi)$, the aspect assignment and topic proportions, respectively, as a relaxation implemented via Gumbel softmax. The paper goes on to describe several temperature experiments, and their effect on the interpretability of the generated topics.
+
+\paragraph{Does the paper evaluate interpretability? If so how?} Yes. The paper defined interpretability as the ability for the model to correctly label aspects in sentences and produce coherent topics. The authors also showed the learned representations could be used on simple classification tasks to enable aspect-based comparison. Finally, the authors showed the generative element of the model---its ratings predictions---could outperform mean squared error baselines on four datasets on four datasets: (1) BeerAdvocate, a body of beer reviews; (2) restaurant reviews from Yelp; (3) Clothing and (4) Movie review datasets from Amazon. 
 
 \section{3}
 
