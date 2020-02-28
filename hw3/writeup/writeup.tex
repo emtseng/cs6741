@@ -63,6 +63,19 @@ Extracted rationales were evaluated using the \textit{mean average precision (MA
 
 \paragraph{What is the model? Roughly how many parameters does the model have?} 
 
+VALTA is a combination of (1) an inference model with parameters $\theta_i$ and (2) a sentence-level generative network with parameters $\theta_g$. Assume review $x_{i,u}$ written by user $u$ about item $i$. We take $x_{i,u,s}$ to mean the sentence $s$ of review $x_{i,u}$, and $z_{i,u,s}$ to mean the aspect assignment of sentence $x_{i,u,s}$. (In this paper's simplification, a sentence is assumed to discuss just one aspect.) With this, we can represent the aspect-specific topic distributions of $x_{i,u}$ as $\psi_{i,u}$. The two component networks are thus:
+\begin{align*}
+  q_{\theta_i}(\psi_{i,u},z_{i,u}|x_i,x_u,x_{i,u}) &= q_{\theta_i}(\psi_{i,u} | x_i,x_u) \prod_s q_{\theta_i}(z_{i,u,s}|x_{i,u,s}) \\
+  p_{\theta_g}(x_{i,u},z_{i,u},\psi_{i,u}) &= \prod_s p_{\theta_g}(x_{i,u,s}|z_{i,u,s},\psi_{i,u})p(z_{i,u,s})\prod_a p(\psi_{i,u,a})
+\end{align*}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.9\textwidth]{esmaili-fig1.png}
+  \caption{Figure 1 from \cite{esmaeili2018structured}, depicting the structure of VALTA.}
+  \label{fig:valta}
+\end{figure}
+
 \paragraph{What is the latent structure?}
 
 \paragraph{What is the inference approach?}
