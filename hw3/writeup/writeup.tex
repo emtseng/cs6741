@@ -19,7 +19,7 @@ In this assignment, we report on the following 3 papers:
 \begin{enumerate}
   \item \cite{lei2016rationalizing}: \textit{Rationalizing Neural Predictions}
   \item \cite{esmaeili2018structured}: \textit{Structured Neural Topic Models for Reviews}
-  \item 3
+  \item \cite{yu2016neural}: \textit{The Neural Noisy Channel}
 \end{enumerate}
 
 \section{\cite{lei2016rationalizing}: \textit{Rationalizing Neural Predictions}}
@@ -111,25 +111,55 @@ Using this method to predict ratings from (user, item) review pairs, we can defi
 
 \paragraph{Does the paper evaluate interpretability? If so how?} Yes. The paper defined interpretability as the ability for the model to correctly label aspects in sentences and produce coherent topics. The authors also showed the learned representations could be used on simple classification tasks to enable aspect-based comparison. Finally, the authors showed the generative element of the model---its ratings predictions---could outperform mean squared error baselines on four datasets on four datasets: (1) BeerAdvocate, a body of beer reviews; (2) restaurant reviews from Yelp; (3) Clothing and (4) Movie review datasets from Amazon. 
 
-\section{3}
+\section{\cite{yu2016neural}: \textit{The Neural Noisy Channel}}
 
-\paragraph{What is the model? Roughly how many parameters does the model have?}
+\cite{yu2016neural} report a neural network implementation of the noisy channel model for seq2seq estimation that uses a latent alignment variable $z$ to control when each output token is to be generated as the input token is read. Variational decomposition of the turns the decoding step from an intractable argmax to a tractable beam search.
 
-\paragraph{What is the latent structure?}
+\paragraph{What is the model? Roughly how many parameters does the model have?} The model uses recurrent neural networks to parameterize the source and channel models of a noisy channel model. Consider the Bayes' rule decomposition of $p$(output sequence $y$ $|$ input sequence $x$):
+$$p(y|x) = \frac{p(x|y)p(y)}{p(x)}$$
 
-\paragraph{What is the inference approach?}
+From this, we have the conditional \textit{channel model} $p(x|y)$ and the unconditional \textit{source model} $p(y)$. In practice, this is intractable at the decoding step, $argmax_y p(x|y)p(y)$. To solve this, the authors build on the Segment to Segment Neural Transduction model (SSNT) and incrementally construct the conditioning context by using the latent variable z. We describe this below.
 
-\paragraph{If they use amortized inference, what is the amortized model? How many parameters does it have?}
+\paragraph{What is the latent structure?} The latent structure in use in this paper involves a latent alignment variable $z$, which indicates when each token of the output sequence is to be generated as the input sequence is read left to right. $z_j=i$ denotes that the output token at position $j$, $y_j$, is generated when the input sequence up through position $i$ has been read. $z$ assumes a sequence is read just once, left to right, and is thus restricted as a monotonically increasing alignment. Thus we have:
+\begin{align*}
+  p(y|x) &= \sum_z p(y,z|x) \\
+  p(y,z|x) &= \prod_{j=1}^{|y|} p(z_j | z_{j-1},x_1^{z_j},y_1^{j-1}) p(y_j|x_1^{z_j},y_1^{j-1})
+\end{align*}
 
-\paragraph{What is the training objective?}
+The first term in the product is the probability of the alignment, decomposed into a sequence of conditionally independent SHIFT and EMIT operations that decide whether to read another token or stop. The probability of emitting an output is calculated:
+$$p(a_{i,j} = EMIT | x_1^{i},y_1^{j-1}) = \sigma(MLP(W_t[h_i;s_j] + b_t))$$
 
-\paragraph{What training / inference approximations does the paper make?}
+The probability of shifting instead of emitting is $1 - p(a_{i,j} = EMIT)$. Thus the alignment probabilities are:
 
-\paragraph{Does the paper evaluate interpretability? If so how?}
+$$p(z_j=i|z_{j-1},y_1^{j-1},x_1^i) = 
+\begin{cases}
+  0 & \text{if $i < z_{j-1}$} \\
+  p(a_{i,j} = EMIT) & \text{if $i=z_{j-1}$} \\ 
+  (\prod_{i'=z_{j-1}}^{i-1}p(a_{i',j}=SHIFT))p(a_{i,j} = EMIT) & \text{if $i>z_{j-1}$} \\ 
+\end{cases}
+$$
 
-\section{Discussion}
+The second term is the probability of the next token $y_j$, calculated by concatenating the aligned hidden state vectors $s_j$ and $h_{z_j}$ and pushing the results through a softmax layer:
+$$p(y_j|x_1^{z_j},y_1^{j-1}) \propto \exp(W_w[h_{z_j};s_j] + b_w)$$
 
-\section{Conclusion}
+Training the SSNT minimizes the negative log-likelihood of the parallel corpus S using gradients of the following objective:
+\begin{align*}
+  \mathcal{L}(\theta) = -\sum_{(x,y)\in S} \log p(y|x;\theta)
+\end{align*}
+
+The parameters $\theta$ are pulled from the component alignment and word probability models.
+
+\paragraph{What is the inference approach? If they use amortized inference, what is the amortized model? How many parameters does it have?} The variational piece of this model happens at the decoding step, where we attempt to get $\hat{y}=argmax_y p(x|y)p(y)$. Instead of performing an exhaustive search of the entire vocabulary every time we extend to the next token in a sequence, we make use of an auxiliary direct model $q(y,z|x)$ to explore probable extensions of partial hypotheses. This is done via a dynamic programming technique using a Viterbi matrix and the following training objective to rank candidate beams:
+$$O_{x_1^i,y_1^i} = \lambda_1 \log p(y_1^j|x_1^i) + \lambda_2 \log p(x_1^i|y_1^j) + \lambda_3 \log p(y_1^j) + \lambda_4 |y_1^j| $$
+
+
+The linear combination weights $\lambda$ are tuned as hyperparameters during training.
+
+\paragraph{What is the training objective?} The variational decoding step described above uses the aforementioned objective to rank candidate beams; additionally, the SSNT itself uses the negative log-likelihood objective described earlier to train over stochastic gradient methods.
+
+\paragraph{What training / inference approximations does the paper make?} 
+
+\paragraph{Does the paper evaluate interpretability? If so how?} The paper does not appear to address interpretability.
 
 \bibliographystyle{apalike}
 \bibliography{writeup}
