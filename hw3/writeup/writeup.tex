@@ -157,7 +157,7 @@ The linear combination weights $\lambda$ are tuned as hyperparameters during tra
 
 \paragraph{What is the training objective?} The variational decoding step described above uses the aforementioned objective to rank candidate beams; additionally, the SSNT itself uses the negative log-likelihood objective described earlier to train over stochastic gradient methods.
 
-\paragraph{What training / inference approximations does the paper make?} 
+\paragraph{What training / inference approximations does the paper make?} The key approximation in this paper is the auxiliary model $q(y,z|x)$ used at the decoding step, which uses a tuned beam search algorithm to partially explore the space of possible prefix hypotheses. Beam sizes $K_1$ and $K_2$ are hyperparameters to be tuned, but the assumption that this method can approximate the true argmax of the candidate output sequences is core to the paper.
 
 \paragraph{Does the paper evaluate interpretability? If so how?} The paper does not appear to address interpretability.
 
