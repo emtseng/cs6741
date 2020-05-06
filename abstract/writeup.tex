@@ -2,32 +2,38 @@
 \documentclass[11pt]{article}
 
 \usepackage{common}
-\title{Final Project: Interpretable Conversation Embeddings}
+\title{Final Project: Disentangled Conversation Embeddings}
 \author{Emily Tseng \\ et397@cornell.edu }
 \begin{document}
 
 \maketitle{}
 \section{Area}
 
-Give us a title and a short abstract describing the research problem.
+Automated analysis of social media conversation is of increasing importance to such pressing social problems as the radicalization of young people towards hate-fueled violence, the congregation of intimate partner abusers in relationship forums, or the spread of misinformation during a deadly pandemic. Yet, the speed and scale of conversation on Facebook, Twitter, Reddit and other online discussion platforms mean human efforts to grasp and moderate what is being said on the Internet are, to put it mildly, intractable. At hand are the entwined problems of \textit{analysis} and \textit{detection}---we want methods to quickly consume ever-increasing quantities of information, and in parallel methods that flag or risk-score worrying situations for human intervention. Keyword-based detection suffers from a lack of scalability, needs constant updating, and struggles to capture conversation-level dynamics; simultaneously, supervised learning approaches suffer from a need for extensively labeled datasets and a lack of cross-domain generalizability.
 
+Recent advances in representation learning offer some promise. Consider the common procedure of unsupervised \textit{pre-training} of structured representations of inputs from massive amounts of data, coupled with \textit{fine-tuning} of those representations in a model built to a specific supervised task, e.g. predicting ratings from reviews. \cite{Chang-Trouble:19} showed that \textit{conversation embeddings} built with this approach could forecast the derailment of online conversations with a substantial improvement in accuracy over existing rule-based baselines, suggesting that the pre-trained representations were learning semantics not captured previously. However, as with many models that rely on neural representations, the approach suffers from a lack of human interpretability: while they showed the embeddings were able to capture conversational ordering, they did not explore further what, precisely, about a conversation was encoded.
+
+In this project, we propose to explore development of an interpretable and structured neural topic model for online conversations. We will begin by performing a set of experiments with the embeddings generated in \cite{Chang-Trouble:19} to understand what conversational dynamics are captured by the form. (In this, we will follow some of the analysis methods outlined in \cite{clark2019does}'s examination of BERT's attention). Using learnings from this effort, we will then investigate the extension of this conversational embedding method with structured aspect learning, as applied in \cite{esmaeili19}. Our hope is to achieve a model capable of producing disentangled conversational representations with predictive power on downstream tasks. 
+
+Using the ChangeMyView dataset \citep{convokit}, we will then visualize the interpretability of the new model by highlighting what it learns as topics, and show its predictive power on the derailment prediction task reported in \cite{Chang-Trouble:19}. We will then show the flexibility of the approach for unsupervised exploration of conversations by highlighting the aspects and topics learned on a novel dataset of online discussions of potentially abusive relationships. Taken together, our work will highlight the promise of representation learning for conversational datasets, with an eye towards assisting human moderators seeking to understand behavior in online discussions and, importantly, to capture their unsavory parts.
 
 \section{Papers}
+% Give 3 minor papers and 1 major paper you will be presenting in class ("your almanac").
 
-Give 3 minor papers and 1 major paper you will be presenting in class ("your almanac").
-
-\section{Time}
-
-I signed up to present on April 20th.
+\begin{itemize}
+    \item{Major paper:} \cite{Chang-Trouble:19} Trouble on the Horizon: Forecasting the Derailment of Online Conversations as they Develop
+    \item{Minor paper 1:} \cite{serban2016building} Building end-to-end dialogue systems using generative hierarchical neural network models
+    \item{Minor paper 2:} \cite{esmaeili19}: Structured Neural Topic Models for Reviews
+    \item{Minor paper 3:} \cite{clark2019does}: What Does BERT Look At?
+\end{itemize}
 
 \section{Baseline}
 
-The main point of published comparison for the project. We expect every project to have some quantitative component.
+\cite{Chang-Trouble:19}.
 
+\section{Team and Time}
 
-\section{Team}
-
-Emily Tseng, et397@cornell.edu.
+My team thus far consists of just me: Emily Tseng, et397@cornell.edu. I signed up to present on April 20th.
 
 
 \bibliographystyle{apalike}
