@@ -6,8 +6,20 @@
 \usepackage{natbib}
 \usepackage{algorithm}
 \usepackage{algorithmic}
+\usepackage{amssymb}
 \usepackage{lipsum}
 \usepackage{todonotes}
+
+\def\authnotes{1}
+
+\newcounter{notectr}[section]
+\newcommand{\thenote}{\thesubsection.\arabic{notectr}\refstepcounter{notectr}}
+
+\newcommand{\fixme}[1]{\textcolor{red}{[FIXME: #1]}}
+\newcommand{\note}[2]{$\ll$#1~\thenote: #2$\gg$}
+\newcommand{\enote}[1]{\ifnum\authnotes=1 \textcolor{blue}{\note{EmilyT}{#1}}\fi}
+
+
 \usepackage[accepted]{icml2017}
 \icmltitlerunning{CS 287 Final Project Template}
 
@@ -27,11 +39,10 @@
   \begin{itemize}
   \item This document describes the expected style, structure, and rough proportions for your final project write-up.
   \item While you are free to break from this structure, consider it a strong prior for our expectations of the final report.
-\item Length is a hard constraint. You are only allowed max \textbf{8 pages} in this format. While you can include supplementary material, it will not be factored into the grading process. It is your responsibility to convey the main contributions of the work in the length given.
+  \item Length is a hard constraint. You are only allowed max \textbf{8 pages} in this format. While you can include supplementary material, it will not be factored into the grading process. It is your responsibility to convey the main contributions of the work in the length given.
   \end{itemize}
 
 
-\lipsum[1]
 \end{abstract}
 
 \section{Introduction}
@@ -57,7 +68,6 @@ Example Structure:
 \item What data exists for this problem?
 \item What are the challenges/opportunities inherent to the data? (High dimensional, sparse, missing data, noise, structure, discrete/continuous, etc?)
 \end{itemize}
-\lipsum[4-8]
 
 
 \section{Related Work}
@@ -72,9 +82,17 @@ Example Structure:
 
 \textbf{NLP and therapy.}
 
-\textbf{Conversational forecasting.}
+\textbf{Conversational forecasting.} Methodologically, our work is an adaptation of the Conversational Recurrent Architecture for ForecasTing (CRAFT), a framework integrating generative pre-training with a supervised fine-tuning model to achieve improved predictive ability on conversation-level attributes, e.g., whether an online conversation will derail into personal attacks \cite{Chang-Trouble:19}.
 
-\textbf{Pre-training and fine-tuning.}
+% \textbf{Pre-training and fine-tuning.}
+
+\section{Dataset}
+
+We consider a dataset of therapy transcripts and associated patient outcomes from Talkspace, an online therapy platform. Due to the highly sensitive nature of therapy, we put significant effort into respecting patients' privacy and autonomy. All represented patients gave informed consent for the use of their data in research, and transcripts were anonymized by Talkspace before they were handed to our research team. Our study protocol was approved by our institutional IRB.
+
+In total, our dataset consists of 5.7M messages exchanged between patients and therapists, representing 11,233 patients' full courses of treatment. 1,906 therapists are represented, with an average of 9 patients per therapist (stdev \fixme{TODO}). \fixme{A smattering of more descriptive statistics: length of pt message, length of therapist message, number of pt / th messages per conversation, length of treatment, burstiness of treatment...}
+
+Outcome annotations are provided in the form of patients' responses to surveys issued approximately every 3 weeks. In total, 13,742 WAI scores were provided by 6,702 patients. Patients provided an average of 2.1 WAI scores (range 1-24, stdev 2.2), and the overall distribution of scores skewed strongly towards the positive end of the spectrum (more strongly allied) \fixme{check and then insert figure}.
 
 
 \section{Model}
@@ -101,6 +119,49 @@ This is also a good place to reference a diagram such as Figure~\ref{fig:diagram
   \missingfigure[figheight=8cm]{}
   \caption{\label{fig:diagram} This is a good place to include a diagram showing how your model works. Examples include a graphical model or a neural network block diagram.}
 \end{figure}
+
+% Our model is an adaptation of the Conversational Recurrent Architecture for ForecasTing (CRAFT) \cite{Chang-Trouble:19}, which integrates a generative dialogue model and a supervised fine-tuning component. 
+
+We define a conversation $C$ as a variable-length sequence of $n$ utterances, $C=\{u_1,...,u_n\}$. Utterances are variable-length sequences of tokens $w$, and thus $u_n=\{w_1,...,w_{M_n}\}$, where $M_n$ is the length in tokens of utterance $n$.
+
+\textbf{Problem definition.} Given a therapy exchange $C=\{u_1,...,u_n\}$, we aim to predict $y_n$, the WAI score provided by the patient at utterance $u_n$.
+
+
+
+
+\textbf{Generative component.} Following Chang et al. \citeyear{Chang-Trouble:19}, we adopted for our generative component the hierarchical recurrent encoder-decoder (HRED) architecture proposed in Sordoni et al. \citeyear{sordoni2015hierarchical} and Serban et al. \citeyear{serban2016building}. Built to model high-level conversational context, including temporal structure and dependencies between consecutive sequential inputs, HREDs are uniquely suited for conversational forecasting tasks. 
+
+HREDs are comprised of three component recurrent neural networks (RNNs): an utterance encoder, a conversation encoder, and a decoder. First, the \textit{utterance encoder} generates for each utterance a semantic vector representation via its hidden state $h^{enc} \in \mathbb{R}^d_{enc}$, where $d_{enc}$ is the desired dimension. For each token $w_m$ in utterance $n$ of length $M$, the encoder updates its $h^{enc}$ like so:
+\begin{equation}
+  h^{enc}_m \gets f^{RNN}(w_{m}, h^{enc}_{m-1})
+\end{equation}
+The utterance encoder's hidden state at the last step, $h^{enc}_{M}$, in theory represents an embedding for the entire utterance. Following Serban et al. \citeyear{serban2016building}, $h^{enc}_{0}$ is initialized as the zero vector $\mathbf{0}$, and following Chang et al. \citeyear{Chang-Trouble:19}, we use the GRU \cite{cho2014learning} as our nonlinear gating function $f^{RNN}$.
+
+Next, the \textit{conversation encoder} uses the hidden states from each consecutive comment in a sequence of length $N$ to produce an embedding $h^{con}_n$ for the conversation up to the utterance at that point ($u_N$):
+\begin{equation}
+  h^{con}_n \gets f^{RNN}(h^{enc}_{M_n}, h^{con}_{n-1})
+\end{equation}
+The conversation encoder also initializes its hidden state $h^{con}_0$ with the zero vector $\mathbf{0}$, and also uses the GRU as its nonlinearity. We denote the dimension of $h^{con}$ as $d_{con}$.
+
+The \textit{decoder} uses the embedded conversational context $h^{con}_n$ to generate a response to utterance $n$. Following Sordoni et al. \citeyear{sordoni2015hierarchical}, it does this by first initializing its own hidden state $h^{dec} \in \mathbb{R}^{d_{dec}}$ using a nonlinear activation of $h^{con}_n$:
+\begin{equation}
+  h^{dec}_0 = \tanh(D h^{con}_n + b_0)
+\end{equation}
+Where $D \in \mathbb{R}^{d_{dec} \times d_{con}}$ projects the context embedding into decoder space, and $b_0 \in \mathbb{R}^{d_{dec}}$. 
+The decoder then updates its own hidden state for each response token using the following recurrence:
+\begin{equation}
+  h^{dec}_{t} \gets f^{RNN}(w_{t-1}, h^{dec}_{t-1})
+\end{equation}
+The decoder then produces the next token in its response by producing a probability distribution over words from $h^{dec}_t$:
+\begin{equation}
+  w_t = f^{out}(h^{dec}_t)
+\end{equation}
+In our implementation, we use a simple feedforward network for $f^{out}$, including a softmax.
+
+
+\textbf{Predictive component.}
+
+\textbf{Parameters.}
 
 
 \section{Inference (or Training)}
@@ -138,7 +199,6 @@ This is also a good place to reference a diagram such as Figure~\ref{fig:diagram
 \item What are the exact details of the metric used?
 \end{itemize}
 
-\lipsum[4-8]
 
 \section{Results}
 
@@ -163,20 +223,16 @@ This is also a good place to reference a diagram such as Figure~\ref{fig:diagram
   \label{fig:mainres}
 \end{table}
 
-\lipsum[7-11]
 
 \section{Discussion}
-
-
 
 \begin{itemize}
 \item What conclusions can you draw from the results section?
 \item Is there further analysis you can do into the results of the system? Here is a good place to include visualizations, graphs, qualitative analysis of your results.
 
-\item  What questions remain open? What did you think might work, but did not?
+\item What questions remain open? What did you think might work, but did not?
 \end{itemize}
 
-\lipsum[4-8]
 
 \begin{figure}
   \centering
@@ -193,7 +249,6 @@ This is also a good place to reference a diagram such as Figure~\ref{fig:diagram
 \item What next?
 \end{itemize}
 
-\lipsum[4-6]
 
 % \section*{Acknowledgements}
 
