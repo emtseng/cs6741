@@ -60,14 +60,11 @@ In this work, we provide a proof of concept for a conversational forecasting mod
 % \item Preview your research process, list the contributions you made, and summarize your experimental findings.
 % \end{itemize}
 
-In therapeutic and caregiving contexts, a patient’s felt sense of \textit{alliance} with a care provider can make or break their treatment. This is particularly important in remote caregiving contexts like online therapy, where the vast majority of the connection between the patient and the caregiver takes place entirely over text-chat. As the popularity of this form of therapy grows, the therapists and supervisors who work on these platforms become akin to call-center employees: shuffling quickly between communication channels with an increasing and neverending caseload of patients demanding their immediate attention.
+In therapeutic and caregiving contexts, a patient’s felt sense of \textit{alliance} with a care provider can make or break their treatment. This is particularly important in remote caregiving contexts like online therapy, where the vast majority of the connection between the patient and the caregiver takes place entirely over text-chat. As the popularity of this form of therapy grows, the therapists and supervisors who work on these platforms become akin to call-center employees: shuffling quickly between communication channels with an increasing and neverending caseload of patients demanding their immediate attention. Equipping these experts with systems that analyze therapeutic conversations and forecast relative risk might enable them to more effectively direct their attention and resources, and ultimately provide better care to more people.
 
-\fixme{todo: write out the first graf of the abstract, maybe cite Verge expose}
+Such systems, however, are not straightforward to build. Our task belongs to the broader field of \textit{conversational forecasting}, which has identified two core modeling challenges: (1) forecasting conversational dynamics requires capturing \textit{high-level attributes} about a conversation that may not be discernible from individual utterances; and (2) because conversations have an \textit{unknown horizon}, they require online processing methods and cannot rely on fixed-length inputs. Many combinations of methods have been applied to similar conversational forecasting tasks, ranging from handcrafted features developed from psycholinguistic intuition \cite{zhang2018conversations} to risk scores computed via similarity metrics between utterances \cite{althoff2016large}. Most recently, Chang et al. \citeyear{Chang-Trouble:19} showed that a model using generative pretraining to develop neural representations of high-level dynamics could then be fine-tuned to outperform these baselines on a supervised prediction task.
 
-\fixme{add example}
-
-
-In this project, we provide a proof of concept for the use of neural representations of high-level conversational dynamics in forecasting alliance between patients and therapists. We describe a model for predicting alliance at any given point in a conversation, and examine its potential using a proprietary dataset of therapy transcripts and patient-provided alliance scores from a major provider of online therapy services. We compare the performance of our model against a traditional feature-engineered method, bag-of-words, and examine variants with and without attention. Our work provides a starting point for further work on conversational forecasting in this important problem domain. To summarize, in this work we:
+In this project, we provide a proof of concept for the use of neural representations of high-level conversational dynamics in forecasting alliance between patients and therapists. We describe a model for predicting alliance at any given point in a conversation, and examine its potential using a proprietary dataset of therapy transcripts and patient-provided alliance scores from a major provider of online therapy services. We compare the performance of our model against a traditional feature-engineered method, bag-of-words, and examine variants with and without attention. Our work provides a starting point for further work developing conversational forecasting methods suited to this important problem domain. To summarize, in this work we:
 
 \begin{itemize}
   \item develop a new model extending the current state-of-the-art in conversational forecasting to meet the challenges of online therapy conversations,
@@ -85,7 +82,13 @@ In this project, we provide a proof of concept for the use of neural representat
 % \item What are the challenges/opportunities inherent to the data? (High dimensional, sparse, missing data, noise, structure, discrete/continuous, etc?)
 % \end{itemize}
 
-\textbf{Online therapy data.} \fixme{What are the challenges/opportunities inherent to the data? (High dimensional, sparse, missing data, noise, structure, discrete/continuous, etc?)}
+\textbf{Online therapy data.} Much of the current state-of-the-art in conversational forecasting has made use of datasets drawn from online social media conversations, for example publicly available Reddit threads \cite{zhang2018conversations} or Wikipedia conversations \cite{Chang-Trouble:19}. The language of online therapy is different, resembling something more akin to private SMS conversations. 
+
+Two key attributes of this type of data make it a fit for the neural approach to conversational forecasting. First, therapeutic conversations by definition involve therapists deploying high-level conversational strategies not visible in individual utterances: therapists are trained to engage with patients in a way that nudges them towards self-driven behavior change. These conversational strategies manifest differently in different therapists, according to their trainings, personal conversational styles, and levels of comfort with the patient. Thus, detection of these high-level attributes cannot be distilled to keyword-based searches or other handcrafted features.
+
+Second, therapeutic conversations exhibit additional levels of variation in their progression over time. Unlike therapeutic conversations in hotline contexts \cite{althoff2016large} or in traditional, in-person therapy, there are no enforced time bounds in online therapy: a patient and a therapist converse asynchronously in a chatroom that is always available to both parties. Our data additionally show variation in \textit{how} people use these online spaces: some patients send many short messages to their therapists within compressed timeframes ('bursts'), while others send longer messages at longer intervals; therapists similarly exhibit variable messaging behaviors. (For more dataset statistics, refer to section \ref{sec:dataset}.) Thus, there is no way to systematize a predetermined breakpoint at which it may be appropriate to make a forecast, and online processing methods are required for the task.
+
+% \fixme{What are the challenges/opportunities inherent to the data? (High dimensional, sparse, missing data, noise, structure, discrete/continuous, etc?)}
 
 
 \textbf{Therapeutic alliance and WAI.} The psychology literature has had a longstanding interest in the role of the relationship between the therapist and the patient in successful psychotherapy. Early works posited that a beneficial attachment between patient and therapist enables the patient to trust the therapist enough to use his or her interpretations to bring about positive change (for a review, see Ardito \& Rabellino \citeyear{ardito2011therapeutic}). Bordin \citeyear{bordin1979generalizability} defined the concept of a \textit{working alliance} as the relational underpinning of many approaches to psychotherapy, and outlined that different types of alliance emerge from different approaches. Regardless of approach, Bordin argues, it is the \textit{strength} of the alliance that best predicts positive outcomes.
@@ -95,31 +98,24 @@ As a way to measure alliance in a given patient-therapist relationship, Horvath 
 \section{Related Work}
 \label{sec:related-work}
 
-\fixme{What 3-5 papers have been published in this space? How do these differ from your approach?}
-\fixme{What data or methodologies do each of these works use? How do you plan to compare to these methods?}
+% \fixme{What 3-5 papers have been published in this space? How do these differ from your approach?}
+% \fixme{What data or methodologies do each of these works use? How do you plan to compare to these methods?}
 
-% % Example Structure:
-% \begin{itemize}
-% \item What 3-5 papers have been published in this space?
-% \item How do these differ from your approach?
-% \item What data or methodologies do each of these works use?
-% \item How do you plan to compare to these methods?
-% \end{itemize}
+Our work adapts and extends the Conversational Recurrent Architecture for ForecasTing (CRAFT), a framework integrating generative pre-training with a supervised fine-tuning model to achieve improved predictive ability on conversation-level attributes, e.g., whether an online conversation will derail into personal attacks \cite{Chang-Trouble:19}. CRAFT itself is an improvement on previous models applied to conversational forecasting that extracted hand-crafted features from fixed-length sliding windows within a conversation \cite{zhang2018conversations}. By making use of generative pre-training, CRAFT learns a neural representation of the high-level attributes of a conversation, and uses that representation to make downstream predictions. Whereas CRAFT focused on prediction of a binary outcome (derailment vs. non-derailment), our work focuses on classification of progressive segments of a conversation into one of multiple outcomes (buckets of WAI scores, as described in section \ref{sec:dataset}). Thus we describe the models reported in this work as variants of CRAFT-Multilabel.
 
-\textbf{NLP and therapy.} \fixme{cite Althoff work, CTL papers, George paper?}
+We additionally extend CRAFT to consider a data type with significantly different modeling considerations. CRAFT was developed to predict the risk of derailment in social media conversations, including threads on Reddit and Wikipedia. In contrast, we study therapeutic conversations, which consist of longer utterances and contain more long-range dependencies, thus presenting a more challenging modeling task. Prior work on similar data most notably includes Althoff et al. \citeyear{althoff2016large}, which attempted to quantify higher-level conversational attributes via vector similarities between utterances using a dataset of transcripts from an SMS-based crisis hotline. A related body of prior work has applied existing measures in discourse analysis, for example synchrony, to therapeutic conversations, showing that effective therapists tend to stylistically mimic their patients \cite{dore2018linguistic}.
 
-\textbf{Conversational forecasting.} Our work adapts and extends the Conversational Recurrent Architecture for ForecasTing (CRAFT), a framework integrating generative pre-training with a supervised fine-tuning model to achieve improved predictive ability on conversation-level attributes, e.g., whether an online conversation will derail into personal attacks \cite{Chang-Trouble:19}. 
-
-Whereas CRAFT focused on prediction of a binary outcome (derailment vs. non-derailment), our work focuses on classification of progressive segments of a conversation into one of multiple outcomes (buckets of WAI scores, as described in section \ref{sec:dataset}). Chang \& Danescu-Niculescu-Mizil \citeyear{Chang-Trouble:19} also focus on social media conversations, including threads on Reddit and Wikipedia; in contrast, we study therapeutic conversations, which are longer and contain more long-range dependencies, thus presenting a more challenging modeling task.
 
 \section{Dataset}
 \label{sec:dataset}
 
-We consider a dataset of therapy transcripts and associated patient outcomes from Talkspace, an online therapy platform. Due to the highly sensitive nature of therapy, we put significant effort into respecting patients' privacy and autonomy. All represented patients gave informed consent for the use of their data in research, and transcripts were anonymized by Talkspace before they were handed to our research team. Our study protocol was approved by our institutional IRB.
+We consider a dataset of therapy transcripts and associated patient outcomes from Talkspace, an online therapy platform. Due to the highly sensitive nature of therapy, we put significant effort into respecting patients' privacy and autonomy. All represented patients gave informed consent for the use of their data in research, and transcripts were anonymized by Talkspace before they were handed to our research team. Study data was stored on a secure remote server maintained by research IT staff at our institution and accessible only when connected to our institutional VPN; at no point was study data downloaded to another local or cloud environment. Our study protocol was approved by our institutional IRB.
 
-In total, our dataset consists of 5.7M messages exchanged between patients and therapists, representing 11,233 patients' full courses of treatment. 1,906 therapists are represented, with an average of 9 patients per therapist. Outcome annotations are provided in the form of patients' responses to surveys issued approximately every 3 weeks. In total, 13,742 WAI scores were provided by 6,702 patients. Patients provided an average of 2.1 WAI scores (range 1-24, stdev 2.2). 
+In total, our dataset consists of 5.7M messages exchanged between patients and therapists, representing 11,233 patients' full courses of treatment. 1,906 therapists are represented, with an average of 9 patients per therapist. As discussed in section \ref{sec:background}, the language of online therapy is highly variable: utterances in our dataset averaged 78.0 words (median=32, std=139.66, range=0-3363).
 
-As depicted in Figure \ref{fig:wai-distribution}, The overall distribution of scores skewed strongly towards the positive end of the spectrum (more strongly allied). Given this, in this project we formulated our predictive task as multiclass classification between three buckets of scores: 0-14, 15-19, and 20.
+Outcome annotations are provided in the form of patients' responses to surveys issued approximately every 3 weeks. Patients vary in the number of utterances they provide before each survey, and in the number of surveys completed overall. In total, 13,742 WAI scores were provided by 6,702 patients. Patients provided an average of 2.1 WAI scores (range 1-24, stdev 2.2). As depicted in Figure \ref{fig:wai-distribution}, The overall distribution of scores skewed strongly towards the positive end of the spectrum (more strongly allied). 
+
+Given this, in this project we formulated our predictive task as multiclass classification between three buckets of scores: 0-14, 15-19, and 20. These can be interpreted, respectively, the patient perceiving a less-than-ideal alliance with their therapist, the patient perceiving a good alliance with their therapist, and the patient perceiving the strongest possible alliance with their therapist. We confirmed this interpretation with our domain-expert partner at Talkspace.
 
 \begin{figure}
   \includegraphics[width=\columnwidth]{figs/wai-distribution.png}
@@ -152,7 +148,7 @@ Our model is an adaptation of the Conversational Recurrent Architecture for Fore
 
 \textbf{Problem definition.} We define a conversation $C$ as a variable-length sequence of $n$ utterances, $C=\{u_1,...,u_n\}$. Utterances are variable-length sequences of tokens $w$, and thus $u_n=\{w_1,...,w_{M_n}\}$, where $M_n$ is the length in tokens of utterance $n$.
 
-Given a therapy exchange $C=\{u_1,...,u_n\}$, we generate $h^{con}_n$, a neural representation of high-level conversational state up to utterance $u_n$. We then use $h^{con}_n$ as the input to a classifier that predicts $y_n$, the label attached to the conversation up to utterance $n$. We define the label $y_n$ based on the WAI score provided by the patient at utterance $u_n$: 0 if the score is in the bucket 0-14, 1 if 15-19, and 2 if the score is 20.
+Given a therapy exchange $C=\{u_1,...,u_n\}$, we generate $h^{con}_n$, a neural representation of high-level conversational state up to utterance $u_n$. We then use $h^{con}_n$ as the input to a classifier that predicts $y_n$, the label attached to the conversation up to utterance $n$. We define the label $y_n$ based on the WAI score provided by the patient at utterance $u_n$: 0 if the score is in the bucket 0-14, 1 if 15-19, and 2 if 20.
 
 \textbf{Generative component.} Following Chang et al. \citeyear{Chang-Trouble:19}, we adopted for our generative component the hierarchical recurrent encoder-decoder (HRED) architecture proposed in Sordoni et al. \citeyear{sordoni2015hierarchical} and Serban et al. \citeyear{serban2016building}. Built to model high-level conversational context, including temporal structure and dependencies between consecutive sequential inputs, HREDs are uniquely suited for conversational forecasting tasks. 
 
@@ -237,20 +233,19 @@ Similarly, training for the predictive component back-propagates the cross-entro
 \section{Methods}
 \label{sec:methods}
 
-\fixme{For each section: What are the exact details of the dataset that you used? (Number of data points / standard or non-standard / synthetic or real / exact form of the data)
-}
+% \fixme{For each section: What are the exact details of the dataset that you used? (Number of data points / standard or non-standard / synthetic or real / exact form of the data)}
 
-\fixme{
-How did you train or run inference? (Optimization method / hyperparameter settings / amount of time ran / what did you implement versus borrow / how were baselines computed).
-}
+% \fixme{How did you train or run inference? (Optimization method / hyperparameter settings / amount of time ran / what did you implement versus borrow / how were baselines computed).}
 
-\fixme{What are the exact details of the metric used?}
+% \fixme{What are the exact details of the metric used?}
 
 \textbf{Generative pre-training.} We began by training our generative model following the structure outlined in section \ref{sec:training}. From our dataset of 5.7M messages we randomly subsampled 250k pairs of contexts (sequences of utterances) and replies. Randomization allowed our model to see a variety of contexts from a variety of conversations, as opposed to repeatedly seeing subsets of the same conversations. For example, in context-reply pairs $(\{u_1,...,u_{n-1}\}, u_{n})$ and $(\{u_1,...,u_{n}\}, u_{n+1})$ from the same conversation, the subsequence of utterances $\{u_1,...,u_{n-1}\}$ repeat across both contexts.
 
-Our generative model was implemented using Pytorch \cite{paszke2019pytorch}, and optimized using that framework's built-in Adam optimizer. Encoder and conversation encoder learning rates were set at 0.0001, and the decoder learning rate was set at 0.0005. 
+Our generative model was implemented using Pytorch \cite{paszke2019pytorch}, and optimized using that framework's built-in Adam optimizer. Encoder and conversation encoder learning rates were set at 0.0001, and the decoder learning rate was set at 0.0005. Training took place on our remotely administered server per the bounds of our IRB.
 
-\textbf{Task-specific fine-tuning.} All experiments with the predictive component of CRAFT-Multilabel initialized training with encoder, conversation encoder, and decoder parameters from the final generative model. 
+\textbf{Task-specific fine-tuning.} All experiments with the predictive component of CRAFT-Multilabel first initialized the encoder, conversation encoder, and decoder parameters from the final iteration of the generative model. For this proof-of-concept, we subsampled 320 context-label pairs from our dataset and constrained analysis to one outcome dimension, WAI-Goal. As mentioned in \ref{sec:dataset}, we adapted the data to bucket the provided raw outcome measures into three classes: 0-14, 15-19, and 20. Our core evaluation metric was overall accuracy. 
+
+Using a train-test split of 70-30, we trained for 10 epochs with a batch size of 16 and a constant learning rate of 0.001. All models used a hidden size of 100. All training took place on our remotely administered CPU per the bounds of our IRB. Training and evaluation runs on this machine took an average of 2.5 hours per run.
 
 \textbf{CBoW comparison.} Core to the proposed applicability of the CRAFT-Multilabel framework is its ability to represent the high-level conversational dynamics that emerge from utterances in sequence (e.g., derailment, the level of working alliance present), and make predictions about those high-level conversational dynamics by using those representations as features in a downstream task. 
 
@@ -258,31 +253,81 @@ To test whether our model was indeed representing higher-level semantics, we com
 
 The $|V|$-length feature vectors $f(C)$ are used as input to a simple feedforward MLP that mimics the structure of the predictive component of CRAFT-Multilabel: that is, it produces a distribution $p(Y|f(C))$ over possible labels $Y=\{0,1,2\}$. Note that the CBoW by definition only captures relative word occurrences; it does not capture word order, or even boundaries between the utterances in our contexts, to say nothing of higher-level conversational dynamics. Thus, comparison of CBoW against CRAFT-Multilabel should demonstrate the effect of incorporating such conversation-level attributes into this predictive task.
 
-Our CBoW was an MLP trained via scikit-learn's Adam optimizer \cite{scikit-learn} for 200 iterations with a constant learning rate of 0.001. Similar to the predictive component of CRAFT-Multilabel, the MLP consisted of 2 hidden layers of size 100, each of which used a ReLU activation.
+Our CBoW was an MLP trained via scikit-learn's Adam optimizer \cite{scikit-learn} for 200 iterations with a constant learning rate of 0.001. Similar to the predictive component of CRAFT-Multilabel, the MLP consisted of 2 hidden layers of size 100, each of which used a ReLU activation. We trained and evaluated this model using the same train-test splits as the CRAFT-Multilabel predictive component described above.
 
-\textbf{Data.} For this proof of concept we compared \fixme{look into train vs val splits}
 
+\begin{table*}[t]
+  \centering
+  \begin{tabular}{@{}rrrrrrrrrrr@{}}
+  \toprule
+   &
+    \multicolumn{1}{c}{} &
+    \multicolumn{3}{c}{\textbf{Class 0 (WAI-Goal 0-14)}} &
+    \multicolumn{3}{c}{\textbf{Class 1 (WAI-Goal 15-19)}} &
+    \multicolumn{3}{c}{\textbf{Class 2 (WAI-Goal 20)}} \\ \cmidrule(l){3-11} 
+  \multicolumn{1}{c}{\textbf{Model}} &
+    \multicolumn{1}{c}{\textbf{Test-set Acc.}} &
+    \multicolumn{1}{c}{\textbf{Precision}} &
+    \multicolumn{1}{c}{\textbf{Recall}} &
+    \multicolumn{1}{c}{\textbf{F1}} &
+    \multicolumn{1}{c}{\textbf{Precision}} &
+    \multicolumn{1}{c}{\textbf{Recall}} &
+    \multicolumn{1}{c}{\textbf{F1}} &
+    \multicolumn{1}{c}{\textbf{Precision}} &
+    \multicolumn{1}{c}{\textbf{Recall}} &
+    \multicolumn{1}{c}{\textbf{F1}} \\ \midrule
+  CBoW &
+    0.5368 &
+    0.62 &
+    0.47 &
+    0.53 &
+    0.37 &
+    0.47 &
+    0.41 &
+    0.68 &
+    0.68 &
+    0.68 \\
+  CRAFT-M &
+    0.5579 &
+    0.55 &
+    0.42 &
+    0.48 &
+    0.41 &
+    0.55 &
+    0.47 &
+    0.72 &
+    0.65 &
+    0.68 \\
+  \textbf{CRAFT-MA} &
+    \textbf{0.6105} &
+    0.77 &
+    0.38 &
+    0.51 &
+    0.5 &
+    0.59 &
+    0.54 &
+    0.65 &
+    0.78 &
+    0.7 \\ \bottomrule
+  \end{tabular}
+  \caption{Test-set performance for the CBoW baseline and CRAFT-Multilabel variants. CRAFT-Multilabel with attention is denoted as CRAFT-MA, and without attention as CRAFT-M. All trials performed with a subset of 320 context/label pairs balanced between the 3 classes and split 70-30 between training and testing. For each model, accuracy figures reflect the top-performing version.}
+  \label{tab:results}
+\end{table*}
 
 \section{Results}
 \label{sec:results}
 
-\fixme{add no-attn variant: What were the secondary results comparing the variants of your system?}
+Table \ref{tab:results} depicts the performance of our models on our held-out test data. As shown, the CRAFT-Multilabel variant with attention (CRAFT-MA) outperforms both the CBoW baseline and the variant without attention (CRAFT-M). 
 
-Table \ref{tab:results} depicts the results of our models on our held-out test sets. As shown, CRAFT-Multilabel outperforms CBoW by roughly 8 percentage points, and both outperform the naive baseline (outputting one of the three classes for every input). 
+To confirm that our models were indeed training, we examined losses over time for both the generative pre-training and the two CRAFT variants (Figure \ref{fig:losses}). Note that in this proof-of-concept we set constant learning rates and did not anneal. Our plots show that our generative model did learn and improve on loss values through the early part of training before reaching a noisy equilibrium, presumably because the learning rate was then too large. Both CRAFT variants also show they were able to learn over time, as reflected in their decreasing loss values.
 
-\begin{table}[t]
-  \centering
-  \begin{tabular}{@{}cc@{}}
-  \toprule
-  \textbf{Model}            & \textbf{Test-set Accuracy} \\ \midrule
-  Selecting a single class           & 0.3333                           \\
-  CBoW                       & 0.5577                           \\
-  BERT & \\
-  \textbf{CRAFT-Multilabel} & \textbf{0.6375}                  \\ \bottomrule
-  \end{tabular}
-  \caption{Performance of the CBoW vs. CRAFT-Multilabel models. All trials run with a test set of 159 context/label pairs evenly balanced between the 3 classes. The random baseline (a model that only outputs 1 class) is shown for comparison.}
-  \label{tab:results}
-\end{table}
+\begin{figure*}[t]
+  \includegraphics[width=\columnwidth]{figs/pretraining-loss.png}
+  \includegraphics[width=\columnwidth]{figs/finetuning-loss.png}
+  \caption{Losses over training iterations during generative pretraining (L) and finetuning of both CRAFT-M variants (R).}
+  \label{fig:losses}
+\end{figure*}
+
 
 % \begin{itemize}
 % \item What were the results comparing previous work / baseline systems / your systems on the main task?
@@ -309,17 +354,22 @@ Table \ref{tab:results} depicts the results of our models on our held-out test s
 \section{Discussion}
 \label{sec:discussion}
 
-\fixme{What conclusions can you draw from the results section?}
+Examination of the confusion matrices from each testing run (Figure \ref{fig:confusion-matrices}), as well as the precision, recall and F1 values (Table \ref{tab:results}) provides a window into the model's performance. First, all models appeared to be uniquely good at distinguishing which samples earned a score of 20, as reflected in the fact that all models' overall highest F1 was for samples in the "perfect alliance" bucket (20), and the density of correctly classified samples in that bucket on the confusion matrices. This is a surprising result not explained by sampling bias: despite the skew in the overall dataset (Figure \ref{fig:wai-distribution}), we balanced samples from all three classes in training and testing. We had hypothesized that the cutoff between "good" alliance (15-19) and "perfect" alliance (20) would not be quite as clear-cut; evidently, the models are capable of learning the difference.  
 
-\fixme{Is there further analysis you can do into the results of the system? Here is a good place to include visualizations, graphs, qualitative analysis of your results.}
+Our results beg further inquiry into what, precisely, the neural representations of higher-level conversational dynamics $h^{con}$ are actually learning. We reserve an in-depth evaluation of those representations for next steps.
 
-\fixme{What questions remain open? What did you think might work, but did not?}
+% \fixme{What conclusions can you draw from the results section?}
 
-\begin{figure}[t]
+% \fixme{Is there further analysis you can do into the results of the system? Here is a good place to include visualizations, graphs, qualitative analysis of your results.}
+
+% \fixme{What questions remain open? What did you think might work, but did not?}
+
+\begin{figure}[]
   \centering
   \includegraphics[width=0.9\columnwidth]{figs/cm-bow.png}
+  \includegraphics[width=0.9\columnwidth]{figs/cm-craftmultinoattn.png}
   \includegraphics[width=0.9\columnwidth]{figs/cm-craftmulti.png}
-  \caption{Confusion matrices for the CBoW vs. CRAFT-Multilabel models.}
+  \caption{Confusion matrices for the CBoW and CRAFT variants.}
   \label{fig:confusion-matrices}
 \end{figure}
 
@@ -334,13 +384,13 @@ Table \ref{tab:results} depicts the results of our models on our held-out test s
 
 \section{Conclusion}
 
-In this work, we implemented, trained and tested a proof of concept for a model that can infer working alliance from the texts of a talk-therapy conversation. For a given segment of conversation, our model utilizes conversation-level embeddings learned via generative pre-training to forecast alliance scores across three buckets: 0-14, 15-19, and 20. Tested on a held-out sample of 159 context/label pairs, our model was shown to significantly outperform both a bag-of-words approach and a random baseline (Table \ref{tab:results}).
+In this work, we implemented, trained and tested a proof of concept for a model that can infer working alliance from the texts of a talk-therapy conversation. For a given segment of conversation, our model utilizes conversation-level embeddings learned via generative pre-training to forecast alliance scores across three buckets: 0-14, 15-19, and 20. Tested on a held-out sample of 96 context/label pairs, our model significantly outperforms both a baseline bag-of-words approach and a variant without attention (Table \ref{tab:results}).
 
-This proof of concept opens many avenues for next steps. 
+This proof of concept opens many avenues for next steps. One obvious avenue is to expand analysis to a larger subset of our data. Now that this project has laid the groundwork for training and testing on this protected dataset, expansion to larger training sets that require longer training times is readily achievable. Another obvious avenue for further exploration is to incorporate additional information into the initial utterance encodings: namely, the timestamps associated with each. Such information might help the model learn whether response times and the `burstiness' of messaging patterns has bearing on a patient's felt sense of alliance. In this work we also adapted the data to forecast working alliance across three buckets, 0-14, 15-19, and 20, in order to map to the distribution in our dataset. Future work might consider regressing to an exact value instead of framing the problem as multiclass classification.
 
-- leverage BERT or GPT-2 embeddings
-- incorporate additional features, such as timestamps
-- consider variational approaches
+Looking beyond optimizations to model to alternative approaches to the task, we are compelled by the possibility of using publicly available pretrained models for the English language such as BERT or GPT-2 to develop the conversation embeddings used as inputs to our predictive task. Trained on massive datasets, these models have recently shown success in a variety of natural language problems. Finally, we are also compelled by the possibility of variational approaches to the task, although explorations of a fundamentally different modeling framework may be best suited to a dataset with fewer constraints. 
+
+Lastly, there remains significant work in developing frameworks for interpreting neural representations of high-level conversational attributes, in order to better understand what components of the source conversations lead to scores in one direction or another.
 
 
 % \section*{Acknowledgements}
