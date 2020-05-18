@@ -217,7 +217,7 @@ How did you train or run inference? (Optimization method / hyperparameter settin
 
 \textbf{Generative pre-training.} We began by training our generative model following the structure outlined in section \ref{sec:training}. From our dataset of 5.7M messages we randomly subsampled 250k pairs of contexts (sequences of utterances) and replies. Randomization allowed our model to see a variety of contexts from a variety of conversations, as opposed to repeatedly seeing subsets of the same conversations. For example, in context-reply pairs $(\{u_1,...,u_{n-1}\}, u_{n})$ and $(\{u_1,...,u_{n}\}, u_{n+1})$ from the same conversation, the subsequence of utterances $\{u_1,...,u_{n-1}\}$ repeat across both contexts.
 
-Our generative model was implemented using Pytorch \cite{paszke2019pytorch}, and optimized using that framework's built-in Adam optimizer. Encoder and conversation encoder learning rates were set at 0.0001, and the decoder learning rate was set at 0.005.
+Our generative model was implemented using Pytorch \cite{paszke2019pytorch}, and optimized using that framework's built-in Adam optimizer. Encoder and conversation encoder learning rates were set at 0.0001, and the decoder learning rate was set at 0.0005.
 
 \textbf{Fine-tuning the predictive component.} All experiments with the predictive component of CRAFT-Multilabel initialized training with encoder, conversation encoder, and decoder parameters from the final generative model.  
 
@@ -235,26 +235,20 @@ Our BoW was an MLP trained via scikit-learn's Adam optimizer \cite{scikit-learn}
 \section{Results}
 \label{sec:results}
 
+Table \ref{tab:results} depicts the results of our models on our held-out test sets. As shown, CRAFT-Multilabel outperforms BoW by roughly 8 percentage points, and both outperform the naive baseline (outputting one of the three classes for every input). 
+
 \begin{table}[t]
   \centering
   \begin{tabular}{@{}cc@{}}
   \toprule
-  \textbf{Model}            & \textbf{Validation-set Accuracy} \\ \midrule
-  Random guessing           & 0.3333                           \\
+  \textbf{Model}            & \textbf{Test-set Accuracy} \\ \midrule
+  Selecting a single class           & 0.3333                           \\
   BoW                       & 0.5577                           \\
   \textbf{CRAFT-Multilabel} & \textbf{0.6375}                  \\ \bottomrule
   \end{tabular}
-  \caption{Performance of the BoW vs. CRAFT-Multilabel models. All trials run with a validation subset of 159 context/label pairs evenly balanced between the 3 classes. The random baseline (a model that only outputs 1 class) is shown for comparison.}
+  \caption{Performance of the BoW vs. CRAFT-Multilabel models. All trials run with a test set of 159 context/label pairs evenly balanced between the 3 classes. The random baseline (a model that only outputs 1 class) is shown for comparison.}
   \label{tab:results}
 \end{table}
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.9\columnwidth]{figs/cm-bow.png}
-  \includegraphics[width=0.9\columnwidth]{figs/cm-craftmulti.png}
-  \caption{Confusion matrices for the BoW vs. CRAFT-Multilabel models.}
-  \label{fig:confusion-matrices}
-\end{figure}
 
 \begin{itemize}
 \item What were the results comparing previous work / baseline systems / your systems on the main task?
@@ -281,12 +275,19 @@ Our BoW was an MLP trained via scikit-learn's Adam optimizer \cite{scikit-learn}
 \section{Discussion}
 \label{sec:discussion}
 
-\begin{itemize}
-\item What conclusions can you draw from the results section?
-\item Is there further analysis you can do into the results of the system? Here is a good place to include visualizations, graphs, qualitative analysis of your results.
+\fixme{What conclusions can you draw from the results section?}
 
-\item What questions remain open? What did you think might work, but did not?
-\end{itemize}
+\fixme{Is there further analysis you can do into the results of the system? Here is a good place to include visualizations, graphs, qualitative analysis of your results.}
+
+\fixme{What questions remain open? What did you think might work, but did not?}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\columnwidth]{figs/cm-bow.png}
+  \includegraphics[width=0.9\columnwidth]{figs/cm-craftmulti.png}
+  \caption{Confusion matrices for the BoW vs. CRAFT-Multilabel models.}
+  \label{fig:confusion-matrices}
+\end{figure}
 
 
 % \begin{figure}
@@ -299,10 +300,11 @@ Our BoW was an MLP trained via scikit-learn's Adam optimizer \cite{scikit-learn}
 
 \section{Conclusion}
 
-\begin{itemize}
-\item What happened?
-\item What next?
-\end{itemize}
+In this work, we implemented, trained and tested a proof of concept for a model that can infer working alliance from the texts of a talk-therapy conversation. For a given segment of conversation, our model utilizes conversation-level embeddings learned via generative pre-training to forecast alliance scores across three buckets: 0-14, 15-19, and 20. Tested on a held-out sample of 159 context/label pairs, our model was shown to significantly outperform both a bag-of-words approach and a random baseline (Table \ref{tab:results}).
+
+This proof of concept opens many avenues for next steps. 
+
+- leverage BERT or GPT-2 embeddings
 
 
 % \section*{Acknowledgements}
