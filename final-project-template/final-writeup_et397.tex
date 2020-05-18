@@ -217,7 +217,7 @@ How did you train or run inference? (Optimization method / hyperparameter settin
 
 \textbf{Generative pre-training.} We began by training our generative model following the structure outlined in section \ref{sec:training}. From our dataset of 5.7M messages we randomly subsampled 250k pairs of contexts (sequences of utterances) and replies. Randomization allowed our model to see a variety of contexts from a variety of conversations, as opposed to repeatedly seeing subsets of the same conversations. For example, in context-reply pairs $(\{u_1,...,u_{n-1}\}, u_{n})$ and $(\{u_1,...,u_{n}\}, u_{n+1})$ from the same conversation, the subsequence of utterances $\{u_1,...,u_{n-1}\}$ repeat across both contexts.
 
-Our generative model was implemented using Pytorch \cite{pytorch}, and optimized using that framework's built-in Adam optimizer. Encoder and conversation encoder learning rates were set at 0.0001, and the decoder learning rate was set at 0.005.
+Our generative model was implemented using Pytorch \cite{paszke2019pytorch}, and optimized using that framework's built-in Adam optimizer. Encoder and conversation encoder learning rates were set at 0.0001, and the decoder learning rate was set at 0.005.
 
 \textbf{Fine-tuning the predictive component.} All experiments with the predictive component of CRAFT-Multilabel initialized training with encoder, conversation encoder, and decoder parameters from the final generative model.  
 
@@ -235,7 +235,7 @@ Our BoW was an MLP trained via scikit-learn's Adam optimizer \cite{scikit-learn}
 \section{Results}
 \label{sec:results}
 
-\begin{table}[]
+\begin{table}[t]
   \centering
   \begin{tabular}{@{}cc@{}}
   \toprule
