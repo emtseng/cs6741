@@ -2,6 +2,7 @@
 
 \usepackage{times}
 \usepackage{graphicx}
+\usepackage{booktabs}
 \usepackage{subfigure}
 \usepackage{natbib}
 \usepackage{algorithm}
@@ -26,10 +27,9 @@
 \begin{document}
 
 \twocolumn[
-\icmltitle{Project Template}
+\icmltitle{Generative Pretraining for Supervised Analysis of Therapeutic Alliance in Online Therapy Conversations}
 \begin{icmlauthorlist}
   \icmlauthor{Emily Tseng}{}
-% \icmlauthor{Yuntian Deng}{}
 \end{icmlauthorlist}
 
 \vskip 0.3in
@@ -55,22 +55,38 @@ Example Structure:
 \item Preview your research process, list the contributions you made, and summarize your experimental findings.
 \end{itemize}
 
+
+
 In therapeutic and caregiving contexts, a patient’s felt sense of \textit{alliance} with a care provider can make or break their treatment. This is particularly important in remote caregiving contexts like online therapy, where the vast majority of the connection between the patient and the caregiver takes place entirely over text-chat. 
 
 % Yet, to-date there have been few attempts to develop rigorous ways to measure how alliance manifests over a remote caregiving connection. What conversational cues or strategies, delivered over what modalities, best create a sense of alliance? How long does it take to build alliance, and how quickly can it dissolve? How is alliance re-established? How does alliance intersect with a patient’s sense of therapist fit, and what is the impact of switching therapists on a patient’s future alliance development?
 
-In this work, we explored the use of neural representations of conversational dynamics in forecasting alliance between patients and therapists.
+In this work, we provide a proof of concept for the use of neural representations of high-level conversational dynamics in forecasting alliance between patients and therapists. We describe a model for predicting alliance at any given point in a conversation, and examine its potential using a proprietary dataset of text-chat therapy transcripts and patient-provided alliance scores from a major provider of online therapy services. \fixme{We compare the performance of our conversational dynamics embeddings against a traditional feature-engineered method. (CBOW)} Our contributions are as follows:
+
+\begin{itemize}
+  \item Contribution 1
+\end{itemize}
 
 \section{Background}
-Example Structure:
-\begin{itemize}
-\item What information does a non-expert need to know about the problem domain?
-\item What data exists for this problem?
-\item What are the challenges/opportunities inherent to the data? (High dimensional, sparse, missing data, noise, structure, discrete/continuous, etc?)
-\end{itemize}
+\label{sec:background}
+
+\fixme{What are the challenges/opportunities inherent to the data? (High dimensional, sparse, missing data, noise, structure, discrete/continuous, etc?)}
+% Example Structure:
+% \begin{itemize}
+% \item What information does a non-expert need to know about the problem domain?
+% \item What data exists for this problem?
+% \item What are the challenges/opportunities inherent to the data? (High dimensional, sparse, missing data, noise, structure, discrete/continuous, etc?)
+% \end{itemize}
+
+\textbf{Therapeutic alliance and WAI.} The psychology literature has had a longstanding interest in the role of the relationship between the therapist and the patient in successful psychotherapy. Early works posited that a beneficial attachment between patient and therapist enables the patient to trust the therapist enough to use his or her interpretations to bring about positive change (for a review, see Ardito \& Rabellino \citeyear{ardito2011therapeutic}). Bordin \citeyear{bordin1979generalizability} defined the concept of a \textit{working alliance} as the relational underpinning of many approaches to psychotherapy, and outlined that different types of alliance emerge from different approaches. Regardless of approach, Bordin argues, it is the \textit{strength} of the alliance that best predicts positive outcomes.
+
+As a way to measure alliance in a given patient-therapist relationship, Horvath \& Greenberg \citeyear{horvath1989development} proposed the Working Alliance Inventory (WAI), a set of self-reported scales that measure the quality of the alliance along the three dimensions defined in Bordin's theoretical framework: (1) the \textit{bond} between patient and therapist, (2) the agreement on the \textit{goals} of the therapy, and (3) the agreement on the \textit{tasks} required to achieve those goals. Available in variants from the perspective of the patient, the therapist, and a third-party observer, the WAI has been validated as a reliable metric for alliance in several contexts (for a meta-analysis, see Martin et al. \citeyear{martin2000relation}).
+
+\textbf{Online therapy.}
 
 
 \section{Related Work}
+\label{sec:related-work}
 
 Example Structure:
 \begin{itemize}
@@ -80,54 +96,51 @@ Example Structure:
 \item How do you plan to compare to these methods?
 \end{itemize}
 
-\textbf{NLP and therapy.}
+\textbf{NLP and therapy.} \fixme{cite Althoff work, etc}
 
-\textbf{Conversational forecasting.} Methodologically, our work is an adaptation of the Conversational Recurrent Architecture for ForecasTing (CRAFT), a framework integrating generative pre-training with a supervised fine-tuning model to achieve improved predictive ability on conversation-level attributes, e.g., whether an online conversation will derail into personal attacks \cite{Chang-Trouble:19}.
-
-% \textbf{Pre-training and fine-tuning.}
+\textbf{Conversational forecasting.} Methodologically, our work is an adaptation of the Conversational Recurrent Architecture for ForecasTing (CRAFT), a framework integrating generative pre-training with a supervised fine-tuning model to achieve improved predictive ability on conversation-level attributes, e.g., whether an online conversation will derail into personal attacks \cite{Chang-Trouble:19}. Whereas CRAFT focused on prediction of a binary outcome (derailment vs. non-derailment) in public-facing conversations on Reddit and Wikipedia, our work focuses on classification of segments of a conversation into one of multiple outcomes (buckets of WAI scores, as described in section \ref{sec:dataset}).
 
 \section{Dataset}
+\label{sec:dataset}
 
 We consider a dataset of therapy transcripts and associated patient outcomes from Talkspace, an online therapy platform. Due to the highly sensitive nature of therapy, we put significant effort into respecting patients' privacy and autonomy. All represented patients gave informed consent for the use of their data in research, and transcripts were anonymized by Talkspace before they were handed to our research team. Our study protocol was approved by our institutional IRB.
 
-In total, our dataset consists of 5.7M messages exchanged between patients and therapists, representing 11,233 patients' full courses of treatment. 1,906 therapists are represented, with an average of 9 patients per therapist (stdev \fixme{TODO}). \fixme{A smattering of more descriptive statistics: length of pt message, length of therapist message, number of pt / th messages per conversation, length of treatment, burstiness of treatment...}
+In total, our dataset consists of 5.7M messages exchanged between patients and therapists, representing 11,233 patients' full courses of treatment. 1,906 therapists are represented, with an average of 9 patients per therapist. 
 
-Outcome annotations are provided in the form of patients' responses to surveys issued approximately every 3 weeks. In total, 13,742 WAI scores were provided by 6,702 patients. Patients provided an average of 2.1 WAI scores (range 1-24, stdev 2.2), and the overall distribution of scores skewed strongly towards the positive end of the spectrum (more strongly allied) \fixme{check and then insert figure}.
+Outcome annotations are provided in the form of patients' responses to surveys issued approximately every 3 weeks. In total, 13,742 WAI scores were provided by 6,702 patients. Patients provided an average of 2.1 WAI scores (range 1-24, stdev 2.2). As depicted in Figure \ref{fig:wai-distribution}, The overall distribution of scores skewed strongly towards the positive end of the spectrum (more strongly allied). Given this, in this project we formulated our predictive task as multiclass classification between three buckets of scores: 0-14, 15-19, and 20.
+
+\begin{figure}
+  \includegraphics[width=\columnwidth]{figs/wai-distribution.png}
+  \caption{Distribution of WAI scores across Goal, Task and Bond dimensions.}
+  \label{fig:wai-distribution}
+\end{figure}
 
 
 \section{Model}
+\label{sec:model}
 
-Example Structure:
+% \item What is the formal definition of your problem?
+% \item What is the precise mathematical model you are using to represent it? In almost all cases this will use the probabilistic language from class, e.g.
+%   \begin{equation}
+%   z \sim {\cal N}(0, \sigma^2)\label{eq:1}
+% \end{equation}
+% But it may also be a neural network, or a non-probabilistic loss,
+% \[ h_t \gets \mathrm{RNN}(x_{t}, h_{t-1} )\]
 
-\begin{itemize}
-\item What is the formal definition of your problem?
-\item What is the precise mathematical model you are using to represent it? In almost all cases this will use the probabilistic language from class, e.g.
-  \begin{equation}
-  z \sim {\cal N}(0, \sigma^2)\label{eq:1}
-\end{equation}
-But it may also be a neural network, or a non-probabilistic loss,
-\[ h_t \gets \mathrm{RNN}(x_{t}, h_{t-1} )\]
-
-This is also a good place to reference a diagram such as Figure~\ref{fig:diagram}.
-
-\item What are the parameters or latent variables of this model that you plan on estimating or inferring? Be explicit. How many are there? Which are you assuming are given? How do these relate to the original problem description?
-\end{itemize}
+% This is also a good place to reference a diagram such as Figure~\ref{fig:diagram}.
 
 
-\begin{figure}
-  \centering
-  \missingfigure[figheight=8cm]{}
-  \caption{\label{fig:diagram} This is a good place to include a diagram showing how your model works. Examples include a graphical model or a neural network block diagram.}
-\end{figure}
+% \begin{figure}
+%   \centering
+%   \missingfigure[figheight=8cm]{}
+%   \caption{\label{fig:diagram} This is a good place to include a diagram showing how your model works. Examples include a graphical model or a neural network block diagram.}
+% \end{figure}
 
-% Our model is an adaptation of the Conversational Recurrent Architecture for ForecasTing (CRAFT) \cite{Chang-Trouble:19}, which integrates a generative dialogue model and a supervised fine-tuning component. 
+Our model is an adaptation of the Conversational Recurrent Architecture for ForecasTing (CRAFT) \cite{Chang-Trouble:19}, which integrates a generative dialogue model and a supervised fine-tuning component to produce predictions utterance-by-utterance about some high-level conversational state (in their work, whether an online exchange will derail).
 
-We define a conversation $C$ as a variable-length sequence of $n$ utterances, $C=\{u_1,...,u_n\}$. Utterances are variable-length sequences of tokens $w$, and thus $u_n=\{w_1,...,w_{M_n}\}$, where $M_n$ is the length in tokens of utterance $n$.
+\textbf{Problem definition.} We define a conversation $C$ as a variable-length sequence of $n$ utterances, $C=\{u_1,...,u_n\}$. Utterances are variable-length sequences of tokens $w$, and thus $u_n=\{w_1,...,w_{M_n}\}$, where $M_n$ is the length in tokens of utterance $n$.
 
-\textbf{Problem definition.} Given a therapy exchange $C=\{u_1,...,u_n\}$, we aim to predict $y_n$, the WAI score provided by the patient at utterance $u_n$.
-
-
-
+Given a therapy exchange $C=\{u_1,...,u_n\}$, we generate $h^{con}_n$, a neural representation of high-level conversational state up to utterance $u_n$. We then use $h^{con}_n$ as the input to a classifier that predicts $y_n$, the label attached to the conversation up to utterance $n$. We define the label $y_n$ based on the WAI score provided by the patient at utterance $u_n$: 0 if the score is in the bucket 0-14, 1 if 15-19, and 2 if the score is 20.
 
 \textbf{Generative component.} Following Chang et al. \citeyear{Chang-Trouble:19}, we adopted for our generative component the hierarchical recurrent encoder-decoder (HRED) architecture proposed in Sordoni et al. \citeyear{sordoni2015hierarchical} and Serban et al. \citeyear{serban2016building}. Built to model high-level conversational context, including temporal structure and dependencies between consecutive sequential inputs, HREDs are uniquely suited for conversational forecasting tasks. 
 
@@ -156,15 +169,19 @@ The decoder then produces the next token in its response by producing a probabil
 \begin{equation}
   w_t = f^{out}(h^{dec}_t)
 \end{equation}
-In our implementation, we use a simple feedforward network for $f^{out}$, including a softmax.
+
+\fixme{at generation...}
+
+\textbf{Predictive component.} Our predictive component uses the conversational embedding up to utterance $u_n$ to generate a prediction for the WAI score at that utterance. We operationalize this as a multi-layer perceptron (MLP) that takes in the conversational state $h^{con}_n$ and produces a distribution $p(Y_n|h^{con}_n)$ over possible labels $Y=\{0,1,2\}$. Adapting from Chang et al. (\citeyear{Chang-Trouble:19}), our MLP uses three fully-connected layers and leaky ReLU activations between each layer; but for our task of multilabel classification, we use a softmax activation. The result is a model that creates a probability distribution in which each score can be interpreted as the likelihood of the given label.
+
+\textbf{Parameters.} \fixme{What are the parameters or latent variables of this model that you plan on estimating or inferring? Be explicit. How many are there? Which are you assuming are given? How do these relate to the original problem description?}
 
 
-\textbf{Predictive component.}
 
-\textbf{Parameters.}
+\section{Training}
+\label{sec:training}
 
-
-\section{Inference (or Training)}
+\fixme{todo: lift from Chang}
 
 \begin{itemize}
 \item How do you plan on training your parameters / inferring the
@@ -176,31 +193,68 @@ In our implementation, we use a simple feedforward network for $f^{out}$, includ
 \end{itemize}
 
 
-\begin{algorithm}
-  \begin{algorithmic}
-    \STATE{\lipsum[1]}
-  \end{algorithmic}
-  \caption{Your Pseudocode}
-\end{algorithm}
+% \begin{algorithm}
+%   \begin{algorithmic}
+%     \STATE{\lipsum[1]}
+%   \end{algorithmic}
+%   \caption{Your Pseudocode}
+% \end{algorithm}
 
 
 
 
 \section{Methods}
+\label{sec:methods}
 
-\begin{itemize}
-\item What are the exact details of the dataset that you used? (Number of data points / standard or non-standard / synthetic or real / exact form of the data)
+\fixme{For each section: What are the exact details of the dataset that you used? (Number of data points / standard or non-standard / synthetic or real / exact form of the data)
+}
 
-\item What are the exact details of the features you computed?
+\fixme{
+How did you train or run inference? (Optimization method / hyperparameter settings / amount of time ran / what did you implement versus borrow / how were baselines computed).
+}
 
+\fixme{What are the exact details of the metric used?}
 
-\item How did you train or run inference? (Optimization method / hyperparameter settings / amount of time ran / what did you implement versus borrow / how were baselines computed).
+\textbf{Generative pre-training.} We began by training our generative model following the structure outlined in section \ref{sec:training}. From our dataset of 5.7M messages we randomly subsampled 250k pairs of contexts (sequences of utterances) and replies. Randomization allowed our model to see a variety of contexts from a variety of conversations, as opposed to repeatedly seeing subsets of the same conversations. For example, in context-reply pairs $(\{u_1,...,u_{n-1}\}, u_{n})$ and $(\{u_1,...,u_{n}\}, u_{n+1})$ from the same conversation, the subsequence of utterances $\{u_1,...,u_{n-1}\}$ repeat across both contexts.
 
-\item What are the exact details of the metric used?
-\end{itemize}
+Our generative model was implemented using Pytorch \cite{pytorch}, and optimized using that framework's built-in Adam optimizer. Encoder and conversation encoder learning rates were set at 0.0001, and the decoder learning rate was set at 0.005.
+
+\textbf{Fine-tuning the predictive component.} All experiments with the predictive component of CRAFT-Multilabel initialized training with encoder, conversation encoder, and decoder parameters from the final generative model.  
+
+\textbf{BoW comparison.} Core to the proposed applicability of the CRAFT-Multilabel framework is its ability to represent the high-level conversational dynamics that emerge from utterances in sequence (e.g., derailment, the level of working alliance present), and make predictions about those high-level conversational dynamics by using those representations as features in a downstream task. 
+
+To test whether our model was indeed representing higher-level semantics, we compared CRAFT-Multilabel against a simple bag-of-words (BoW) model. Given a vocabulary $V$, BoW represents an input context as a $|V|$-length vector of the counts of each word in $V$ in the context. In our implementation, we normalized the raw counts of each word in $V$ according to their relative importance within their contexts, quantified by their term frequency-inverse document frequency (tf-idf). This $|V|$-length feature vector $x$ is then used as the input to a simple feedforward MLP that mimics the structure of the predictive component of CRAFT-Multilabel: that is, it produces a distribution $p(Y|x)$ over possible labels $Y=\{0,1,2\}$.
+
+Note that the BoW by definition only captures relative word occurrences; it does not capture word order, or even boundaries between the utterances in our contexts, to say nothing of higher-level conversational dynamics. Thus, comparison of BoW against CRAFT-Multilabel should demonstrate the effect of incorporating such conversation-level attributes into this predictive task.
+
+Our BoW was an MLP trained via scikit-learn's Adam optimizer \cite{scikit-learn} for 200 iterations with a constant learning rate of 0.001. Similar to the predictive component of CRAFT-Multilabel, the MLP consisted of 2 hidden layers of size 100, each of which used a ReLU activation.
+
+\textbf{Data.} For this proof of concept we compared 
 
 
 \section{Results}
+\label{sec:results}
+
+\begin{table}[]
+  \centering
+  \begin{tabular}{@{}cc@{}}
+  \toprule
+  \textbf{Model}            & \textbf{Validation-set Accuracy} \\ \midrule
+  Random guessing           & 0.3333                           \\
+  BoW                       & 0.5577                           \\
+  \textbf{CRAFT-Multilabel} & \textbf{0.6375}                  \\ \bottomrule
+  \end{tabular}
+  \caption{Performance of the BoW vs. CRAFT-Multilabel models. All trials run with a validation subset of 159 context/label pairs evenly balanced between the 3 classes. The random baseline (a model that only outputs 1 class) is shown for comparison.}
+  \label{tab:results}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\columnwidth]{figs/cm-bow.png}
+  \includegraphics[width=0.9\columnwidth]{figs/cm-craftmulti.png}
+  \caption{Confusion matrices for the BoW vs. CRAFT-Multilabel models.}
+  \label{fig:confusion-matrices}
+\end{figure}
 
 \begin{itemize}
 \item What were the results comparing previous work / baseline systems / your systems on the main task?
@@ -208,23 +262,24 @@ In our implementation, we use a simple feedforward network for $f^{out}$, includ
 \item This section should be fact based and relatively dry. What happened, what was significant?
 \end{itemize}
 
-\begin{table*}
-  \centering
-  \missingfigure{}
-  \caption{This is usually a table. Tables with numbers are generally easier to read than graphs, so prefer when possible.}
-  \label{fig:mainres}
-\end{table*}
+% \begin{table*}
+%   \centering
+%   \missingfigure{}
+%   \caption{This is usually a table. Tables with numbers are generally easier to read than graphs, so prefer when possible.}
+%   \label{fig:mainres}
+% \end{table*}
 
 
-\begin{table}
-  \centering
-  \missingfigure[figheight=5cm]{}
-  \caption{Secondary table or figure in results section.}
-  \label{fig:mainres}
-\end{table}
+% \begin{table}
+%   \centering
+%   \missingfigure[figheight=5cm]{}
+%   \caption{Secondary table or figure in results section.}
+%   \label{fig:mainres}
+% \end{table}
 
 
 \section{Discussion}
+\label{sec:discussion}
 
 \begin{itemize}
 \item What conclusions can you draw from the results section?
@@ -234,13 +289,13 @@ In our implementation, we use a simple feedforward network for $f^{out}$, includ
 \end{itemize}
 
 
-\begin{figure}
-  \centering
-  \missingfigure{}
-  \missingfigure{}
-  \missingfigure{}
-  \caption{Visualizations of the internals of the system.}
-\end{figure}
+% \begin{figure}
+%   \centering
+%   \missingfigure{}
+%   \missingfigure{}
+%   \missingfigure{}
+%   \caption{Visualizations of the internals of the system.}
+% \end{figure}
 
 \section{Conclusion}
 
